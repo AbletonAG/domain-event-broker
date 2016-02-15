@@ -1,0 +1,2 @@
+include versioneer.py
+include domain_events/_version.py

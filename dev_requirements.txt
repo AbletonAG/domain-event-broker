@@ -1,0 +1,7 @@
+-f http://galaxy/packages/
+abl.util==0.1.15
+ipdb==0.8
+ipython==2.3.1
+py==1.4.31
+pytest==2.8.5
+wheel==0.24.0
