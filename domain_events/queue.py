@@ -29,10 +29,10 @@ class DummyQueue(object):
         self.db_transaction = db_transaction
 
 
-    def push(self, data):
-        self.pending.append(data)
+    def push(self, data, routing_key=None):
+        self.pending.append((data, routing_key))
         log.debug("Pushed a message into queue {}: {}".format(
-                self.queue_settings.name, data))
+                self.queue_settings.NAME, (data, routing_key)))
 
 
     def flush(self):
@@ -51,12 +51,12 @@ class DummyQueue(object):
             if current_connection.in_atomic_block:
                 log.warning("Called flush in atomic block")
         log.debug("Flushing {} queue, sending {} messages.".format(
-                self.queue_settings.name, len(self.pending)))
+                self.queue_settings.NAME, len(self.pending)))
 
         if self.pending:
             with self:
-                for message in self.pending:
-                    self.send(message)
+                for message, routing_key in self.pending:
+                    self.send(message, routing_key)
         self.pending = []
 
 
@@ -68,9 +68,9 @@ class DummyQueue(object):
         pass
 
 
-    def send(self, message):
-        self.messages.append(message)
-        self.last_message = message
+    def send(self, message, routing_key=None):
+        self.messages.append((message, routing_key))
+        self.last_message = self.messages[-1]
 
 
     def __enter__(self):
