@@ -1,7 +1,7 @@
 from abl.util import Bunch
-from domain_events.queue import RabbitQueue
+from domain_events.rabbitmq_transport import RabbitQueue, DummyQueue
 
-def get_queue(is_receiver, binding_keys=None, queue_name='test_queue'):
+def get_queue(is_receiver, binding_keys=None, queue_name='test_queue', queue_type=DummyQueue):
     queue_settings = Bunch(
         NAME=queue_name,
         IS_RECEIVER=is_receiver,
@@ -17,7 +17,7 @@ def get_queue(is_receiver, binding_keys=None, queue_name='test_queue'):
         RABBITMQ_USER=None,
         RABBITMQ_PW=None,
     )
-    queue=RabbitQueue(queue_settings, connection_settings)
+    queue=queue_type(queue_settings, connection_settings)
     queue.connect()
 
     return queue

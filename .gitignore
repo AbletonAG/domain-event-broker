@@ -1,4 +1,5 @@
 dist/
+.cache/
 *.pyc
 *.egg-info
 *.swp
