@@ -11,8 +11,11 @@ class TestEvent(object):
     def test_dummy(self):
         event = DomainEvent('test', 'test', {})
         fire_domain_event(event, self.transport)
-        event_data, routing_key = self.transport.last_message
-        event_data = json.loads(event_data)
+        json_data, routing_key = self.transport.last_message
+        event_data = json.loads(json_data)
         assert routing_key == "test.test"
         assert event_data['data'] == {}
-        assert event_data['uuid'] == event.uuid
+        assert event_data['uuid_string'] == event.uuid_string
+
+        new_event = DomainEvent.from_json(json_data)
+        assert new_event == event
