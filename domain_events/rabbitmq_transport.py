@@ -12,6 +12,25 @@ log = logging.getLogger(__name__)
 class TransactionInProgressError(Exception):
     pass
 
+class QueueSettings(object):
+
+    def __init__(self,
+                 name="",
+                 is_receiver=True,
+                 exchange="",
+                 exchange_type="",
+                 binding_keys=(),
+                 durable=True,
+                 dlx=False):
+        self.NAME = name
+        self.IS_RECEIVER = is_receiver
+        self.EXCHANGE = exchange
+        self.EXCHANGE_TYPE = exchange_type
+        self.BINDING_KEYS = binding_keys
+        self.DURABLE = durable
+        self.DLX = dlx
+
+
 class DummyQueue(object):
 
     def __init__(self,
