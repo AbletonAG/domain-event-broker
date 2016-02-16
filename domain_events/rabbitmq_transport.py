@@ -34,9 +34,10 @@ class QueueSettings(object):
 class DummyQueue(object):
 
     def __init__(self,
-                 queue_settings,
+                 queue_settings=None,
                  connection_settings=None,
                  db_transaction=None,
+                 receive_callback=None
                  ):
         self.queue_settings = queue_settings
         self.context_depth = 0
@@ -46,13 +47,15 @@ class DummyQueue(object):
         self.last_message = None
         self.connection_settings = connection_settings
         self.db_transaction = db_transaction
-
+        self.channel = None
+        self.receive_callback = receive_callback
+        if receive_callback is None:
+            self.receive_callback = self.fallback_receive_callback
 
     def push(self, data, routing_key=None):
         self.pending.append((data, routing_key))
         log.debug("Pushed a message into queue {}: {}".format(
                 self.queue_settings.NAME, (data, routing_key)))
-
 
     def flush(self):
         """
@@ -78,25 +81,31 @@ class DummyQueue(object):
                     self.send(message, routing_key)
         self.pending = []
 
-
     def connect(self):
         pass
 
-
     def disconnect(self):
         pass
-
 
     def send(self, message, routing_key=None):
         self.messages.append((message, routing_key))
         self.last_message = self.messages[-1]
 
+    def fallback_receive_callback(self, ch, method, properties, body):
+        """
+        Please make sure to initialize the receive_callback if you need one.
+        """
+        print " [x] %r:%r" % (method.routing_key, body)
+        ch.basic_ack(delivery_tag = method.delivery_tag)
+
+    def receive(self):
+        self.channel.basic_consume(self.receive_callback, queue=self.queue_settings.NAME)
+        self.channel.start_consuming()
 
     def __enter__(self):
         if self.context_depth == 0:
             self.connect()
         self.context_depth += 1
-
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.context_depth -= 1
@@ -107,17 +116,10 @@ class DummyQueue(object):
 
 class RabbitQueue(DummyQueue):
 
-    def __init__(self,
-                 queue_settings,
-                 connection_settings=None,
-                 transaction=None,
-                 ):
-        super(RabbitQueue, self).__init__(queue_settings, connection_settings, transaction)
-        if connection_settings is None:
+    def __init__(self, **kwargs):
+        super(RabbitQueue, self).__init__(**kwargs)
+        if self.connection_settings is None:
             raise ValueError("RabbitQueue needs settings")
-        self.connection = None
-        self.channel = None
-
 
     def connect(self):
         """
@@ -158,18 +160,6 @@ class RabbitQueue(DummyQueue):
                                             exchange=self.queue_settings.EXCHANGE,
                                             routing_key=binding_key)
 
-
-    def receive_callback(self, ch, method, properties, body):
-        """
-        Please overwrite me.
-        """
-        print " [x] %r:%r" % (method.routing_key, body)
-        ch.basic_ack(delivery_tag = method.delivery_tag)
-
-    def receive(self):
-        self.channel.basic_consume(self.receive_callback, queue=self.queue_settings.NAME)
-        self.channel.start_consuming()
-
     def send(self, message, routing_key=None):
         """
         Send as persistent message.
@@ -185,7 +175,6 @@ class RabbitQueue(DummyQueue):
                 properties=BasicProperties(delivery_mode=2),
                 )
 
-
     def disconnect(self):
         """
         Disconnect from queue. The API is a little weird. First we close the
@@ -197,3 +186,11 @@ class RabbitQueue(DummyQueue):
         """
         self.connection.close()
         self.connection = None
+
+
+def create_queue(**kwargs):
+    connection_settings = kwargs.get('connection_settings')
+    if connection_settings and connection_settings.RABBITMQ_HOST:
+        return RabbitQueue(**kwargs)
+    else:
+        return DummyQueue(**kwargs)
