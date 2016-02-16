@@ -18,7 +18,7 @@ class DomainEvent(object):
         NOTES: currently, json does not serialize UUID objects. Since the uuid string is all that matters,
         the easy way out is to just use the string version.
         """
-        self.domain = domain,
+        self.domain = domain
         self.event_type = event_type
         self.routing_key = u"{}.{}".format(domain, event_type)
         self.data = data
