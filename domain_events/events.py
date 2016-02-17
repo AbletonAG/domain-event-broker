@@ -3,6 +3,7 @@ import json
 from uuid import uuid4
 
 from .rabbitmq_transport import QueueSettings, DummyQueue, create_queue
+import rabbitmq_transport
 
 FACTOR = 10**6
 
@@ -18,9 +19,6 @@ class DomainEvent(object):
 
     DOMAIN = ""
     EVENT_TYPE = ""
-    SEND_TRANSPORT = None
-    RECV_TRANSPORT = None
-    REQUEST_FINISHED = None # if not None, this needs to be django's request_finished signal
 
     def __init__(self,
                  domain="",
@@ -47,58 +45,20 @@ class DomainEvent(object):
 
         The routing key is of the form <DOMAIN>.<EVENT_TYPE>
         """
-        self.domain = domain
-        self.event_type = event_type
-        self.routing_key = u"{}.{}".format(domain, event_type)
+        self.domain = domain or self.DOMAIN
+        self.event_type = event_type or self.EVENT_TYPE
+        self.routing_key = u"{}.{}".format(self.domain, self.event_type)
         self.data = data
         self.domain_object_id=domain_object_id
-        self.uuid_string = str(uuid_string)
+        self.uuid_string = uuid_string
         if uuid_string is None:
             self.uuid_string = str(uuid4())
         self.timestamp = timestamp
         if timestamp is None:
             timestamp = to_timestamp(datetime.utcnow())
             self.timestamp = timestamp
-        self.request_finished = None
         event_data = self.__dict__.copy()
-        del event_data['request_finished']
         self.event_data = event_data
-
-    @classmethod
-    def _rabbitmq_receiver_settings(cls):
-        name = u"{}.{}".format(cls.DOMAIN, cls.EVENT_TYPE)
-        return QueueSettings(name = u"{}.{}".format(cls.DOMAIN, cls.EVENT_TYPE),
-                             is_receiver = True,
-                             exchange = u"domain-events",
-                             exchange_type = u"topic",
-                             binding_keys = (name,),
-                             durable = True,
-                             dlx = False,
-                             )
-    @classmethod
-    def _rabbitmq_sender_settings(cls):
-        name = u"{}.{}".format(cls.DOMAIN, cls.EVENT_TYPE)
-        settings = cls._rabbitmq_receiver_settings()
-        settings.RECEIVER = False
-
-        return settings
-
-    @classmethod
-    def rabbitmq_sender_queue(cls, connection_settings, queue_type=DummyQueue):
-        queue_settings = cls._rabbitmq_sender_settings()
-        queue = queue_type(queue_settings, connection_settings)
-        queue.connect()
-
-        return queue
-
-    @classmethod
-    def rabbitmq_receiver_queue(cls, connection_settings, queue_type=DummyQueue):
-        queue_settings = cls._rabbitmq_receiver_settings()
-        queue = queue_type(queue_settings, connection_settings)
-        queue.connect()
-
-        return queue
-
 
     @classmethod
     def from_json(cls, json_data):
@@ -108,15 +68,9 @@ class DomainEvent(object):
         return cls(**json.loads(json_data))
 
     @classmethod
-    def create(cls, **kwargs):
-        """Create a domain event from a subclass, You just need to provide the data.
-        """
-        return cls(cls.DOMAIN, cls.EVENT_TYPE, **kwargs)
-
-    @classmethod
-    def create_and_fire(cls, **kwargs):
-        event = cls.create(**kwargs)
-        fire_domain_event(None, event)
+    def create_and_fire(cls, *args, **kwargs):
+        event = cls(*args, **kwargs)
+        fire_domain_event(event)
 
         return event
 
@@ -129,7 +83,7 @@ class DomainEvent(object):
         return self.event_data == other.event_data
 
 
-def fire_domain_event(transport, event, request_finished=None):
+def fire_domain_event(event, transport=None, request_finished=None):
     """Fire the Domain Event
     @event -> DomainEvent
     @transport: the transport is used to actually fire the event (a RabbitQueue is known to have the
@@ -137,10 +91,8 @@ def fire_domain_event(transport, event, request_finished=None):
     @request_finished: see django.core.signals.request_finished
     """
     if transport is None:
-        transport = event.__class__.SEND_TRANSPORT
+        transport = rabbitmq_transport.default_sender_queue
     assert transport is not None, "We need a transport when firing an event"
-    if request_finished:
-        request_finished = event.__class__.REQUEST_FINISHED
     data = json.dumps(event.event_data)
     if request_finished is None:
         transport.send(data, event.routing_key)

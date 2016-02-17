@@ -6,7 +6,7 @@ del get_versions
 
 from rabbitmq_transport import (
     create_queue,
-    initialize_connection_settings,
+    initialize_lib,
     QueueSettings,
 )
 

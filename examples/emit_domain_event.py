@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 
+import logging
 import sys
 
 from abl.util import Bunch
 
 from domain_events import *
+
+logging.basicConfig()
 
 connection_settings=Bunch(
     RABBITMQ_HOST='localhost',
@@ -13,16 +16,10 @@ connection_settings=Bunch(
     RABBITMQ_PW=None,
 )
 
-initialize_connection_settings(connection_settings)
+initialize_lib(connection_settings)
 
 def main():
-    # default settings are for sending domain events
-    queue = create_queue()
-    queue.connect()
-
-    event = DomainEvent('test_domain', 'event_has_happened', data={'myinfo':'foo'})
-
-    fire_domain_event(queue, event)
+    event = DomainEvent.create_and_fire('test_domain', 'event_has_happened', data={'myinfo':'foo'})
     print " [x] Sent %r" % event
 
 if __name__ == '__main__':

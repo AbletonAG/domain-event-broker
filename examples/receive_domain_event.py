@@ -13,7 +13,7 @@ connection_settings=Bunch(
     RABBITMQ_PW=None,
 )
 
-initialize_connection_settings(connection_settings)
+initialize_lib(connection_settings)
 
 def main():
     name, binding_key = sys.argv[1:]

@@ -9,11 +9,17 @@ from pika import (
 log = logging.getLogger(__name__)
 
 _connection_settings = None
+default_sender_queue = None
 
 
-def initialize_connection_settings(connection_settings):
+def initialize_lib(connection_settings):
     global _connection_settings
     _connection_settings = connection_settings
+
+    global default_sender_queue
+    if default_sender_queue is None:
+        default_sender_queue = create_queue()
+        default_sender_queue.connect()
 
 
 class TransactionInProgressError(Exception):
