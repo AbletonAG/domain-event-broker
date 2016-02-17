@@ -25,7 +25,8 @@ def main():
     )
 
     def receive_callback(ch, method, properties, body):
-        print " [x] %r:%r" % (method.routing_key, body)
+        event = DomainEvent.from_json(body)
+        print " [x] %r:%r" % (method.routing_key, event)
         ch.basic_ack(delivery_tag = method.delivery_tag)
 
     queue = create_queue(queue_settings=queue_settings, receive_callback=receive_callback)
