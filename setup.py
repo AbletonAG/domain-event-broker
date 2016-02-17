@@ -10,6 +10,6 @@ setup(
     author='the Ableton web team',
     author_email='webteam@ableton.com',
     license='MIT',
-    packages=['domain_events', 'tests'],
+    packages=['domain_events'],
     zip_safe=False,
 )

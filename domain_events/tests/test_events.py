@@ -4,7 +4,7 @@ from abl.util import Bunch
 
 import pytest
 
-from tests.test_queues import get_queue
+from test_queues import get_queue
 from domain_events import *
 
 initialize_lib(None) # we are using the dummy queue
