@@ -201,7 +201,7 @@ class RabbitQueue(DummyQueue):
 
 
 def create_queue(**kwargs):
-    connection_settings = kwargs.get('connection_settings')
+    connection_settings = kwargs.get('connection_settings') or _connection_settings
     if connection_settings and connection_settings.RABBITMQ_HOST:
         return RabbitQueue(**kwargs)
     else:

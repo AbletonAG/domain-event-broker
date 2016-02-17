@@ -18,6 +18,7 @@ initialize_connection_settings(connection_settings)
 def main():
     # default settings are for sending domain events
     queue = create_queue()
+    queue.connect()
 
     event = DomainEvent('test_domain', 'event_has_happened', data={'myinfo':'foo'})
 
