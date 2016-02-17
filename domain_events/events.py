@@ -17,23 +17,20 @@ def to_timestamp(dt, epoch=datetime(1970,1,1)):
 
 class DomainEvent(object):
 
-    DOMAIN = ""
-    EVENT_TYPE = ""
-
     def __init__(self,
-                 domain="",
-                 event_type="",
+                 routing_key=u"",
                  data={},
                  domain_object_id=None,
                  uuid_string=None, # only set if recreated from json repr
                  timestamp=None, # only set if recreated from json repr
                  **kwargs):
         """Define a Domain Event
-        @domain -> str : the domain this event is supposed to live.
-        @event_type -> str : the serialized event type.
+        @routing_key -> str : The routing key is of the form <DOMAIN>.<EVENT_TYPE>
+            The routing key should be a descriptive name of the domain event such as
+            "user.has_unlocked_serial_number".
         @data -> dict : the actual event data. MUST be json serializable.
         @domain_object_id -> str : this MIGHT be set if the event is about a domain object with a known domain id.
-            (if everything lives in a database, this might be the database id)
+            NOTE: this field is optional. If used, it might search in an event store easier.
         @uuid_string -> str : this events uuid4. If left None, a new one will be created.
             NOTE: a uuid object can not be serialized in json.
         @timestamp -> float : unix timestamp. If timestamp is None, a new (utc) timestamp will be created.
@@ -45,11 +42,9 @@ class DomainEvent(object):
 
         The routing key is of the form <DOMAIN>.<EVENT_TYPE>
         """
-        self.domain = domain or self.DOMAIN
-        self.event_type = event_type or self.EVENT_TYPE
-        self.routing_key = u"{}.{}".format(self.domain, self.event_type)
+        self.routing_key = routing_key
         self.data = data
-        self.domain_object_id=domain_object_id
+        self.domain_object_id = domain_object_id
         self.uuid_string = uuid_string
         if uuid_string is None:
             self.uuid_string = str(uuid4())
@@ -70,12 +65,16 @@ class DomainEvent(object):
     @classmethod
     def create_and_fire(cls, *args, **kwargs):
         event = cls(*args, **kwargs)
-        fire_domain_event(event)
+        _fire_domain_event(event)
 
         return event
 
     def __repr__(self):
-        return u"DomainEvent('{}', '{}', {})".format(self.domain, self.event_type, self.data)
+        return u"DomainEvent('{}', '{}', (domain_obj_id: {}))".format(
+            self.routing_key,
+            self.data,
+            self.domain_object_id,
+        )
 
     __str__ = __repr__
 
@@ -83,7 +82,11 @@ class DomainEvent(object):
         return self.event_data == other.event_data
 
 
-def fire_domain_event(event, transport=None, request_finished=None):
+def emit_domain_event(*args, **kwargs):
+    return DomainEvent.create_and_fire(*args, **kwargs)
+
+
+def _fire_domain_event(event, transport=None, request_finished=None):
     """Fire the Domain Event
     @event -> DomainEvent
     @transport: the transport is used to actually fire the event (a RabbitQueue is known to have the

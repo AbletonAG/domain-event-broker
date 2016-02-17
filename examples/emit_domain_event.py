@@ -19,18 +19,7 @@ connection_settings=Bunch(
 initialize_lib(connection_settings)
 
 def main():
-    event = DomainEvent.create_and_fire('test_domain', 'event_has_happened', data={'myinfo':'foo'})
-    print " [x] Sent %r" % event
-
-def alternative_main():
-    """Send the same event, but as a DomainEvent subclass.
-    """
-
-    class MyEventHasHappened(DomainEvent):
-        DOMAIN = 'test_domain'
-        EVENT_TYPE = 'event_has_happened'
-
-    event = MyEventHasHappened.create_and_fire(data={'myinfo':'foo'})
+    event = emit_domain_event('test_domain.event_has_happened', data={'myinfo':'foo'})
     print " [x] Sent %r" % event
 
 if __name__ == '__main__':

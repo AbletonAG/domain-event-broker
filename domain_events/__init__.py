@@ -10,4 +10,7 @@ from rabbitmq_transport import (
     QueueSettings,
 )
 
-from events import DomainEvent, fire_domain_event
+from events import (
+    DomainEvent,
+    emit_domain_event,
+)
