@@ -1,20 +1,28 @@
 #!/usr/bin/env python
 
-import pika
 import sys
 
+from abl.util import Bunch
+
+from domain_events import *
+
+connection_settings=Bunch(
+    RABBITMQ_HOST='localhost',
+    RABBITMQ_PORT=None,
+    RABBITMQ_USER=None,
+    RABBITMQ_PW=None,
+)
+
+initialize_connection_settings(connection_settings)
+
 def main():
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
-    channel = connection.channel()
+    # default settings are for sending domain events
+    queue = create_queue()
 
-    channel.exchange_declare(exchange='domain-events', type='topic')
+    event = DomainEvent('test_domain', 'event_has_happened', data={'myinfo':'foo'})
 
-    routing_key = sys.argv[1]
-
-    message = "hello world!"
-    channel.basic_publish(exchange='domain-events', routing_key=routing_key, body=message)
-    print " [x] Sent %r" % message
-    connection.close()
+    fire_domain_event(queue, event)
+    print " [x] Sent %r" % event
 
 if __name__ == '__main__':
     main()

@@ -8,6 +8,13 @@ from pika import (
 
 log = logging.getLogger(__name__)
 
+_connection_settings = None
+
+
+def initialize_connection_settings(connection_settings):
+    global _connection_settings
+    _connection_settings = connection_settings
+
 
 class TransactionInProgressError(Exception):
     pass
@@ -16,12 +23,15 @@ class QueueSettings(object):
 
     def __init__(self,
                  name="",
-                 is_receiver=True,
-                 exchange="",
-                 exchange_type="",
+                 is_receiver=False,
+                 exchange="domain-events",
+                 exchange_type="topic",
                  binding_keys=(),
                  durable=True,
                  dlx=False):
+        """The Rabbitmq Queue Settings.
+        The defaults will be good to send events to the 'domain-events' topic exchange.
+        """
         self.NAME = name
         self.IS_RECEIVER = is_receiver
         self.EXCHANGE = exchange
@@ -40,12 +50,14 @@ class DummyQueue(object):
                  receive_callback=None
                  ):
         self.queue_settings = queue_settings
+        if queue_settings is None:
+            self.queue_settings = QueueSettings() # we default to sending to the domain-events topic exchange
         self.context_depth = 0
         self.pending = []
         self.connection = None
         self.messages = []
         self.last_message = None
-        self.connection_settings = connection_settings
+        self.connection_settings = connection_settings or _connection_settings
         self.db_transaction = db_transaction
         self.channel = None
         self.receive_callback = receive_callback

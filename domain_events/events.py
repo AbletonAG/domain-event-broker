@@ -120,6 +120,11 @@ class DomainEvent(object):
 
         return event
 
+    def __repr__(self):
+        return u"DomainEvent('{}', '{}', {})".format(self.domain, self.event_type, self.data)
+
+    __str__ = __repr__
+
     def __eq__(self, other):
         return self.event_data == other.event_data
 
