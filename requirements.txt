@@ -1,3 +1,3 @@
 -f http://galaxy/packages/
-pika==0.9.13
-
+--trusted-host galaxy
+pika>=0.9.13

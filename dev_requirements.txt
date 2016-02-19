@@ -1,4 +1,5 @@
 -f http://galaxy/packages/
+--trusted-host galaxy
 abl.util==0.1.15
 ipdb==0.8
 ipython==2.3.1

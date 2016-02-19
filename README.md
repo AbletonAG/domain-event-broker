@@ -5,7 +5,7 @@ Make sure you have rabbitmq installed locally for testing.
 
 * create virtualenv and activate it
 * run `pip install -r requirements.txt -r dev_requirements.txt -e .`
-* the only external dependency (so far) is `pika==0.9.13`
+* the only external dependency (so far) is `pika>=0.9.13`
 
 
 Architecture
@@ -21,4 +21,4 @@ There's
 Testing
 -------
 
-testing is currently done by py.test which allows some quite advanced testing features.
+testing is currently done by `py.test` which allows some quite advanced testing features.
