@@ -2,8 +2,7 @@ import logging
 from pika import (
     BasicProperties,
     BlockingConnection,
-    ConnectionParameters,
-    PlainCredentials,
+    URLParameters,
     )
 
 log = logging.getLogger(__name__)
@@ -11,8 +10,11 @@ log = logging.getLogger(__name__)
 _connection_settings = None
 default_sender_queue = None
 
+# Default settings for local installation of RabbitMQ
+DEFAULT_CONNECTION_SETTINGS = 'amqp://guest:guest@localhost:5672/%2F'
 
-def initialize_lib(connection_settings):
+
+def configure(connection_settings):
     global _connection_settings
     _connection_settings = connection_settings
 
@@ -47,7 +49,7 @@ class QueueSettings(object):
         self.DLX = dlx
 
 
-class DummyQueue(object):
+class BaseQueue(object):
 
     def __init__(self,
                  queue_settings=None,
@@ -132,7 +134,7 @@ class DummyQueue(object):
         return False
 
 
-class RabbitQueue(DummyQueue):
+class RabbitQueue(BaseQueue):
 
     def __init__(self, **kwargs):
         super(RabbitQueue, self).__init__(**kwargs)
@@ -145,17 +147,7 @@ class RabbitQueue(DummyQueue):
         message is added to the queue. We might switch to asynch connections
         should this incur noticable latencies.
         """
-        credentials = None
-        if self.connection_settings.RABBITMQ_USER and self.connection_settings.RABBITMQ_PW:
-            credentials = PlainCredentials(
-                self.connection_settings.RABBITMQ_USER,
-                self.connection_settings.RABBITMQ_PW,
-                )
-        params = ConnectionParameters(
-            host=self.connection_settings.RABBITMQ_HOST,
-            port=self.connection_settings.RABBITMQ_PORT,
-            credentials=credentials,
-            )
+        params = URLParameters(self.connection_settings)
         self.connection = BlockingConnection(params)
         self.channel = self.connection.channel()
 
@@ -208,7 +200,7 @@ class RabbitQueue(DummyQueue):
 
 def create_queue(**kwargs):
     connection_settings = kwargs.get('connection_settings') or _connection_settings
-    if connection_settings and connection_settings.RABBITMQ_HOST:
+    if connection_settings:
         return RabbitQueue(**kwargs)
     else:
-        return DummyQueue(**kwargs)
+        return BaseQueue(**kwargs)

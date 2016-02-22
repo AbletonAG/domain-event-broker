@@ -2,18 +2,21 @@ from datetime import datetime
 import json
 from uuid import uuid4
 
-from .rabbitmq_transport import QueueSettings, DummyQueue, create_queue
 import rabbitmq_transport
+
 
 FACTOR = 10**6
 
+
 def get_domain_events_sender(connection_settings):
     pass
+
 
 def to_timestamp(dt, epoch=datetime(1970,1,1)):
     """http://stackoverflow.com/questions/8777753/converting-datetime-date-to-utc-timestamp-in-python"""
     td = dt - epoch
     return (td.microseconds + (td.seconds + td.days * 86400) * FACTOR) / FACTOR
+
 
 class DomainEvent(object):
 

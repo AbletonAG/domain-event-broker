@@ -2,18 +2,10 @@
 
 import sys
 
-from abl.util import Bunch
-
 from domain_events import *
 
-connection_settings=Bunch(
-    RABBITMQ_HOST='localhost',
-    RABBITMQ_PORT=None,
-    RABBITMQ_USER=None,
-    RABBITMQ_PW=None,
-)
+configure(DEFAULT_CONNECTION_SETTINGS)
 
-initialize_lib(connection_settings)
 
 def main():
     name, binding_key = sys.argv[1:]

@@ -1,22 +1,13 @@
 #!/usr/bin/env python
-
 import logging
-import sys
 
-from abl.util import Bunch
-
-from domain_events import *
+from domain_events import emit_domain_event, configure
 
 logging.basicConfig()
 
-connection_settings=Bunch(
-    RABBITMQ_HOST='localhost',
-    RABBITMQ_PORT=None,
-    RABBITMQ_USER=None,
-    RABBITMQ_PW=None,
-)
+connection_settings = ''
 
-initialize_lib(connection_settings)
+configure(connection_settings)
 
 def main():
     event = emit_domain_event('test_domain.event_has_happened', data={'myinfo':'foo'})

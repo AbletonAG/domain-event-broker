@@ -1,15 +1,11 @@
 import json
 
-from abl.util import Bunch
-
-import pytest
-
-from test_queues import get_queue
 from domain_events import *
 
-initialize_lib(None) # we are using the dummy queue
+configure(None) # we are using the dummy queue
 
 from domain_events.rabbitmq_transport import default_sender_queue as transport
+
 
 class TestEvent(object):
 
