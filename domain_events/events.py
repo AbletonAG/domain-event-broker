@@ -97,7 +97,7 @@ def _fire_domain_event(event, transport=None, request_finished=None):
     @request_finished: see django.core.signals.request_finished
     """
     if transport is None:
-        transport = rabbitmq_transport.default_sender_queue
+        transport = rabbitmq_transport.default_transport
     assert transport is not None, "We need a transport when firing an event"
     data = json.dumps(event.event_data)
     if request_finished is None:
@@ -110,7 +110,8 @@ def _fire_domain_event(event, transport=None, request_finished=None):
         request_finished.connect(_flush, dispatch_uid=event.routing_key)
 
 
-def receive_domain_events(handler, **kwargs):
+def receive_domain_events(handler, name, binding_keys, durable=True, dlx=False,
+                          **kwargs):
     """
     Set up a receiver queue and call the given handler for every domain event
     that is received. The keyword arguments are passed into `QueueSettings`.
@@ -141,8 +142,7 @@ def receive_domain_events(handler, **kwargs):
         else:
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
-    queue_settings = rabbitmq_transport.QueueSettings(is_receiver=True, **kwargs)
-    queue = rabbitmq_transport.create_queue(queue_settings=queue_settings,
-                                            receive_callback=receive_callback)
-    queue.connect()
-    queue.receive()
+    transport = rabbitmq_transport.Transport(**kwargs)
+    transport.connect()
+    transport.receive(receive_callback, name, binding_keys=binding_keys,
+                      durable=durable, dlx=dlx)

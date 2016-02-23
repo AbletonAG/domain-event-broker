@@ -7,75 +7,47 @@ from pika import (
 
 log = logging.getLogger(__name__)
 
-_connection_settings = None
-default_sender_queue = None
+default_transport = None
 
 # Default settings for local installation of RabbitMQ
 DEFAULT_CONNECTION_SETTINGS = 'amqp://guest:guest@localhost:5672/%2F'
 
 
-def configure(connection_settings):
-    global _connection_settings
-    _connection_settings = connection_settings
+def configure(connection_settings=DEFAULT_CONNECTION_SETTINGS):
+    # TODO-lha: create the transport lazily; is there a nice way of getting the
+    # connection settings without having to call configure?
+    global default_transport
+    if default_transport is None:
+        default_transport = Transport(connection_settings=connection_settings)
+        default_transport.connect()
 
-    global default_sender_queue
-    if default_sender_queue is None:
-        default_sender_queue = create_queue()
-        default_sender_queue.connect()
+
+def flush():
+    if default_transport is not None:
+        default_transport.flush()
 
 
-class TransactionInProgressError(Exception):
-    pass
-
-class QueueSettings(object):
+class Transport(object):
 
     def __init__(self,
-                 name="",
-                 is_receiver=False,
                  exchange="domain-events",
                  exchange_type="topic",
-                 binding_keys=(),
-                 durable=True,
-                 dlx=False):
-        """The Rabbitmq Queue Settings.
-        The defaults will be good to send events to the 'domain-events' topic exchange.
-        """
-        self.NAME = name
-        self.IS_RECEIVER = is_receiver
-        self.EXCHANGE = exchange
-        self.EXCHANGE_TYPE = exchange_type
-        self.BINDING_KEYS = binding_keys
-        self.DURABLE = durable
-        self.DLX = dlx
-
-
-class BaseQueue(object):
-
-    def __init__(self,
-                 queue_settings=None,
-                 connection_settings=None,
-                 db_transaction=None,
+                 connection_settings=DEFAULT_CONNECTION_SETTINGS,
                  receive_callback=None
                  ):
-        self.queue_settings = queue_settings
-        if queue_settings is None:
-            self.queue_settings = QueueSettings() # we default to sending to the domain-events topic exchange
+        self.exchange = exchange
+        self.exchange_type = exchange_type
         self.context_depth = 0
         self.pending = []
         self.connection = None
         self.messages = []
-        self.last_message = None
-        self.connection_settings = connection_settings or _connection_settings
-        self.db_transaction = db_transaction
+        self.connection_settings = connection_settings
         self.channel = None
-        self.receive_callback = receive_callback
-        if receive_callback is None:
-            self.receive_callback = self.fallback_receive_callback
 
     def push(self, data, routing_key=None):
         self.pending.append((data, routing_key))
-        log.debug("Pushed a message into queue {}: {}".format(
-                self.queue_settings.NAME, (data, routing_key)))
+        log.debug("Pushed a message into exchange {}: {}".format(
+            self.exchange, (data, routing_key)))
 
     def flush(self):
         """
@@ -88,12 +60,8 @@ class BaseQueue(object):
         messages pushed since the last flush are now transmitted to the queuing
         service.
         """
-        if self.db_transaction is not None:
-            current_connection = self.db_transaction.get_connection()
-            if current_connection.in_atomic_block:
-                log.warning("Called flush in atomic block")
-        log.debug("Flushing {} queue, sending {} messages.".format(
-                self.queue_settings.NAME, len(self.pending)))
+        log.debug("Flushing exchange {}, sending {} messages.".format(
+            self.exchange, len(self.pending)))
 
         if self.pending:
             with self:
@@ -101,25 +69,32 @@ class BaseQueue(object):
                     self.send(message, routing_key)
         self.pending = []
 
-    def connect(self):
-        pass
-
-    def disconnect(self):
-        pass
-
     def send(self, message, routing_key=None):
+        """
+        Send as persistent message.
+        """
         self.messages.append((message, routing_key))
-        self.last_message = self.messages[-1]
+        with self:
+            self.channel.basic_publish(
+                exchange=self.exchange,
+                routing_key=routing_key,
+                body=message,
+                properties=BasicProperties(delivery_mode=2),
+                )
 
-    def fallback_receive_callback(self, ch, method, properties, body):
-        """
-        Please make sure to initialize the receive_callback if you need one.
-        """
-        print " [x] %r:%r" % (method.routing_key, body)
-        ch.basic_ack(delivery_tag = method.delivery_tag)
-
-    def receive(self):
-        self.channel.basic_consume(self.receive_callback, queue=self.queue_settings.NAME)
+    def receive(self, callback, name, binding_keys=(), durable=True, dlx=False):
+        arguments = {"x-dead-letter-exchange": dlx} if dlx else {}
+        self.channel.queue_declare(queue=name,
+                                   durable=durable,
+                                   arguments=arguments,
+                                   )
+        for binding_key in binding_keys:
+            self.channel.queue_bind(queue=name,
+                                    exchange=self.exchange,
+                                    routing_key=binding_key)
+        self.channel.basic_consume(callback, queue=name)
+        # TODO-lha: if we need multiple receivers in one process, we should split
+        # basic_consume and start_consuming into different methods.
         self.channel.start_consuming()
 
     def __enter__(self):
@@ -133,14 +108,6 @@ class BaseQueue(object):
             self.disconnect()
         return False
 
-
-class RabbitQueue(BaseQueue):
-
-    def __init__(self, **kwargs):
-        super(RabbitQueue, self).__init__(**kwargs)
-        if self.connection_settings is None:
-            raise ValueError("RabbitQueue needs settings")
-
     def connect(self):
         """
         For now we use a synchronous connection - caller is blocked until a
@@ -151,39 +118,12 @@ class RabbitQueue(BaseQueue):
         self.connection = BlockingConnection(params)
         self.channel = self.connection.channel()
 
-        if self.queue_settings.EXCHANGE and self.queue_settings.EXCHANGE_TYPE:
-            # set up the Exchange (if it does not exist)
-            self.channel.exchange_declare(exchange=self.queue_settings.EXCHANGE,
-                                          type=self.queue_settings.EXCHANGE_TYPE,
-                                          durable=True,
-                                          auto_delete=False,
-                                          )
-        if self.queue_settings.IS_RECEIVER:
-            arguments = {"x-dead-letter-exchange": self.queue_settings.DLX} if self.queue_settings.DLX else {}
-            self.channel.queue_declare(queue=self.queue_settings.NAME,
-                                       durable=self.queue_settings.DURABLE,
-                                       arguments=arguments,
-                                       )
-            if self.queue_settings.BINDING_KEYS is not None:
-                for binding_key in self.queue_settings.BINDING_KEYS:
-                    self.channel.queue_bind(queue=self.queue_settings.NAME,
-                                            exchange=self.queue_settings.EXCHANGE,
-                                            routing_key=binding_key)
-
-    def send(self, message, routing_key=None):
-        """
-        Send as persistent message.
-        """
-        if routing_key is None:
-            routing_key = self.queue_settings.NAME
-        super(RabbitQueue, self).send(message)
-        with self:
-            self.channel.basic_publish(
-                exchange=self.queue_settings.EXCHANGE,
-                routing_key=routing_key,
-                body=message,
-                properties=BasicProperties(delivery_mode=2),
-                )
+        # set up the Exchange (if it does not exist)
+        self.channel.exchange_declare(exchange=self.exchange,
+                                      type=self.exchange_type,
+                                      durable=True,
+                                      auto_delete=False,
+                                      )
 
     def disconnect(self):
         """
@@ -196,11 +136,3 @@ class RabbitQueue(BaseQueue):
         """
         self.connection.close()
         self.connection = None
-
-
-def create_queue(**kwargs):
-    connection_settings = kwargs.get('connection_settings') or _connection_settings
-    if connection_settings:
-        return RabbitQueue(**kwargs)
-    else:
-        return BaseQueue(**kwargs)
