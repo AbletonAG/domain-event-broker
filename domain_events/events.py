@@ -108,3 +108,41 @@ def _fire_domain_event(event, transport=None, request_finished=None):
             request_finished.disconnect(_flush, dispatch_uid=event.routing_key)
         transport.push(data, event.routing_key)
         request_finished.connect(_flush, dispatch_uid=event.routing_key)
+
+
+def receive_domain_events(handler, **kwargs):
+    """
+    Set up a receiver queue and call the given handler for every domain event
+    that is received. The keyword arguments are passed into `QueueSettings`.
+
+    Calling this function will enter an IO loop.
+
+    @handler -> func(event)
+
+    Example:
+
+    >>> receive_domain_events(send_email, name='my-queue', binding_keys=['user.created'])
+
+    Any error raised in the receiver function will remove the event from the
+    queue and put it in the dead-letter queue if there is one.
+    """
+
+    def receive_callback(ch, method, properties, body):
+        event = DomainEvent.from_json(body)
+        print "{}:{}".format(method.routing_key, event)
+        try:
+            handler(event)
+        except:
+            # LATER: If we want immediate requeueing, add a `RequeueError` that
+            # a consumer can raise to trigger requeuing. You probably want a
+            # dead-letter queue instead.
+            ch.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
+            raise
+        else:
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+
+    queue_settings = rabbitmq_transport.QueueSettings(is_receiver=True, **kwargs)
+    queue = rabbitmq_transport.create_queue(queue_settings=queue_settings,
+                                            receive_callback=receive_callback)
+    queue.connect()
+    queue.receive()

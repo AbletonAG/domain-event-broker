@@ -14,4 +14,5 @@ from rabbitmq_transport import (
 from events import (
     DomainEvent,
     emit_domain_event,
+    receive_domain_events,
 )
