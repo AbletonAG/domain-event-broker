@@ -30,9 +30,14 @@ def get_transport():
     return _transport
 
 
-def flush():
+def transmit():
     if _transport is not None:
-        _transport.flush()
+        _transport.transmit()
+
+
+def discard():
+    if _transport is not None:
+        _transport.discard()
 
 
 class Transport(object):
@@ -52,7 +57,7 @@ class Transport(object):
         log.debug("Pushed a message into exchange {}: {}".format(
             self.exchange, (data, routing_key)))
 
-    def flush(self):
+    def transmit(self):
         """
         Open connection prior to transmitting the payload and close right
         after. We could keep the connection open for subsequent requests but
@@ -60,16 +65,26 @@ class Transport(object):
         The whole roundtrip takes about 5-10ms.
 
         This needs to happen after the DB transaction is committed. All
-        messages pushed since the last flush are now transmitted to the queuing
+        messages pushed since the last transmit are now transmitted to the queuing
         service.
         """
         log.debug("Flushing exchange {}, sending {} messages.".format(
             self.exchange, len(self.pending)))
-
+        self.messages = []
         if self.pending:
             with self:
                 for message, routing_key in self.pending:
                     self.send(message, routing_key)
+        self.pending = []
+
+    def discard(self):
+        """
+        Discard all pending events. This can be called after an error so that
+        subsequent requests don't transmit events for actions that have been
+        rolled back.
+        """
+        self.messages = []
+        log.debug("Discarding {} messages.".format(len(self.pending)))
         self.pending = []
 
     def send(self, message, routing_key=None):

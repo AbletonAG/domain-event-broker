@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 import logging
 
-from domain_events import emit_domain_event, flush
+from domain_events import emit_domain_event, transmit
 
 logging.basicConfig()
 
 
 def main():
     event = emit_domain_event('test_domain.event_has_happened', data={'myinfo':'foo'})
-    flush()
+    transmit()
     print " [x] Sent %r" % event
 
 
