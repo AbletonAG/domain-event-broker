@@ -1,9 +1,8 @@
-from domain_events.rabbitmq_transport import Transport, DEFAULT_CONNECTION_SETTINGS
+from domain_events.rabbitmq_transport import Transport
 
 
 def get_transport():
-    transport = Transport(exchange='test_exchange', connection_settings=DEFAULT_CONNECTION_SETTINGS)
-    transport.connect()
+    transport = Transport(exchange='test_exchange')
     return transport
 
 

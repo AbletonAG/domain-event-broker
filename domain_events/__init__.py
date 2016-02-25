@@ -6,7 +6,9 @@ del get_versions
 
 from rabbitmq_transport import (
     configure,
+    flush,
     DEFAULT_CONNECTION_SETTINGS,
+    Transport,
 )
 
 from events import (

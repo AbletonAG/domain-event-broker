@@ -7,41 +7,44 @@ from pika import (
 
 log = logging.getLogger(__name__)
 
-default_transport = None
-
 # Default settings for local installation of RabbitMQ
 DEFAULT_CONNECTION_SETTINGS = 'amqp://guest:guest@localhost:5672/%2F'
 
+_connection_settings = DEFAULT_CONNECTION_SETTINGS
+_transport = None
 
-def configure(connection_settings=DEFAULT_CONNECTION_SETTINGS):
-    # TODO-lha: create the transport lazily; is there a nice way of getting the
-    # connection settings without having to call configure?
-    global default_transport
-    if default_transport is None:
-        default_transport = Transport(connection_settings=connection_settings)
-        default_transport.connect()
+
+def configure(connection_settings):
+    """
+    Override the connection settings for the default transport that is used
+    when emitting domain events.
+    """
+    global _connection_settings
+    _connection_settings = connection_settings
+
+
+def get_transport():
+    global _transport
+    if _transport is None:
+        _transport = Transport()
+    return _transport
 
 
 def flush():
-    if default_transport is not None:
-        default_transport.flush()
+    if _transport is not None:
+        _transport.flush()
 
 
 class Transport(object):
 
-    def __init__(self,
-                 exchange="domain-events",
-                 exchange_type="topic",
-                 connection_settings=DEFAULT_CONNECTION_SETTINGS,
-                 receive_callback=None
-                 ):
+    def __init__(self, exchange="domain-events", exchange_type="topic"):
         self.exchange = exchange
         self.exchange_type = exchange_type
         self.context_depth = 0
         self.pending = []
         self.connection = None
         self.messages = []
-        self.connection_settings = connection_settings
+        self.connection_settings = _connection_settings
         self.channel = None
 
     def push(self, data, routing_key=None):

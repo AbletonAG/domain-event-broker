@@ -2,9 +2,7 @@
 
 import sys
 
-from domain_events import configure, receive_domain_events, DEFAULT_CONNECTION_SETTINGS
-
-configure(DEFAULT_CONNECTION_SETTINGS)
+from domain_events import receive_domain_events
 
 
 def log_event(event):

@@ -4,8 +4,6 @@ import sys
 
 from domain_events import *
 
-configure(DEFAULT_CONNECTION_SETTINGS)
-
 
 def main():
     name, binding_key = sys.argv[1:]
@@ -13,7 +11,7 @@ def main():
     def receive_callback(ch, method, properties, body):
         event = DomainEvent.from_json(body)
         print " [x] %r:%r" % (method.routing_key, event)
-        ch.basic_ack(delivery_tag = method.delivery_tag)
+        ch.basic_ack(delivery_tag=method.delivery_tag)
 
     queue = Transport()
     queue.connect()
