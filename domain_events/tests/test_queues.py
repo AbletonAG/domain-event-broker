@@ -1,4 +1,4 @@
-from domain_events.rabbitmq_transport import Transport
+from domain_events.transport import Transport
 
 
 def get_transport():

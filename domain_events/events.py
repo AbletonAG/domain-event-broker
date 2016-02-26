@@ -2,7 +2,7 @@ from datetime import datetime
 import json
 from uuid import uuid4
 
-import rabbitmq_transport
+import transport
 
 
 FACTOR = 10**6
@@ -80,9 +80,8 @@ class DomainEvent(object):
 
 def emit_domain_event(*args, **kwargs):
     event = DomainEvent(*args, **kwargs)
-    transport = rabbitmq_transport.get_transport()
     data = json.dumps(event.event_data)
-    transport.push(data, event.routing_key)
+    transport.get_transport().push(data, event.routing_key)
     return event
 
 
@@ -118,7 +117,7 @@ def receive_domain_events(handler, name, binding_keys, durable=True, dlx=False,
         else:
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
-    transport = rabbitmq_transport.Transport(**kwargs)
-    transport.connect()
-    transport.receive(receive_callback, name, binding_keys=binding_keys,
+    receiver = transport.Transport(**kwargs)
+    receiver.connect()
+    receiver.receive(receive_callback, name, binding_keys=binding_keys,
                       durable=durable, dlx=dlx)

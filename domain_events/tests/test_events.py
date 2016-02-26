@@ -7,7 +7,7 @@ from domain_events import (
     DomainEvent,
     )
 
-from domain_events.rabbitmq_transport import get_transport
+from domain_events.transport import get_transport
 
 
 class TestEvent(object):

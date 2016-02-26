@@ -1,5 +1,6 @@
 -f http://galaxy/packages/
 --trusted-host galaxy
+coverage
 ipdb
 ipython
 py==1.4.31
