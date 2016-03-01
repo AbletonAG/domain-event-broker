@@ -85,11 +85,11 @@ def emit_domain_event(*args, **kwargs):
     return event
 
 
-def receive_domain_events(handler, name, binding_keys, durable=True, dlx=False,
-                          **kwargs):
+def receive_domain_events(handler, name, binding_keys, dead_letter=False,
+                          durable=True, exclusive=False, auto_delete=False):
     """
     Set up a receiver queue and call the given handler for every domain event
-    that is received. The keyword arguments are passed into `QueueSettings`.
+    that is received. The keyword arguments are passed into `Transport.receive`.
 
     Calling this function will enter an IO loop.
 
@@ -117,7 +117,8 @@ def receive_domain_events(handler, name, binding_keys, durable=True, dlx=False,
         else:
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
-    receiver = transport.Transport(**kwargs)
+    receiver = transport.Transport()
     receiver.connect()
     receiver.receive(receive_callback, name, binding_keys=binding_keys,
-                      durable=durable, dlx=dlx)
+                     dead_letter=dead_letter, durable=durable,
+                     exclusive=exclusive, auto_delete=auto_delete)

@@ -100,10 +100,23 @@ class Transport(object):
                 properties=BasicProperties(delivery_mode=2),
                 )
 
-    def receive(self, callback, name, binding_keys=(), durable=True, dlx=False):
-        arguments = {"x-dead-letter-exchange": dlx} if dlx else {}
+    def receive(self, callback, name, binding_keys=(), dead_letter=False,
+                durable=True, exclusive=False, auto_delete=False):
+        arguments = {}
+        if dead_letter:
+            dlx = name + '-dlx'
+            self.channel.exchange_declare(exchange=dlx, type=self.exchange_type)
+            result = self.channel.queue_declare(queue=name + '-dl', durable=True)
+            queue_name = result.method.queue
+            for binding_key in binding_keys:
+                self.channel.queue_bind(exchange=dlx,
+                                        routing_key=binding_key,
+                                        queue=queue_name)
+            arguments["x-dead-letter-exchange"] = dlx
         self.channel.queue_declare(queue=name,
                                    durable=durable,
+                                   exclusive=exclusive,
+                                   auto_delete=auto_delete,
                                    arguments=arguments,
                                    )
         for binding_key in binding_keys:
