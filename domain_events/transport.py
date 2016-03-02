@@ -124,9 +124,13 @@ class Transport(object):
                                     exchange=self.exchange,
                                     routing_key=binding_key)
         self.channel.basic_consume(callback, queue=name)
-        # TODO-lha: if we need multiple receivers in one process, we should split
-        # basic_consume and start_consuming into different methods.
-        self.channel.start_consuming()
+        # Note: If we want to run multiple receivers in one process, we should
+        # split basic_consume and start_consuming into different methods.
+        try:
+            self.channel.start_consuming()
+        except KeyboardInterrupt:
+            self.channel.stop_consuming()
+            self.disconnect()
 
     def __enter__(self):
         if self.context_depth == 0:

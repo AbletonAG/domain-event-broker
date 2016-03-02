@@ -109,9 +109,9 @@ def receive_domain_events(handler, name, binding_keys, dead_letter=False,
         try:
             handler(event)
         except:
-            # LATER: If we want immediate requeueing, add a `RequeueError` that
-            # a consumer can raise to trigger requeuing. You probably want a
-            # dead-letter queue instead.
+            # Note: If we want immediate requeueing, add a `RequeueError` that
+            # a consumer can raise to trigger requeuing. Dead-letter queues are
+            # a better choice in most cases.
             ch.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
             raise
         else:
