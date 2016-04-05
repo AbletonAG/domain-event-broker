@@ -2,7 +2,7 @@
 
 import sys
 
-from domain_events import receive_domain_events
+from domain_events import Receiver
 
 
 def handler(event):
@@ -11,4 +11,6 @@ def handler(event):
 
 if __name__ == '__main__':
     binding_keys = sys.argv[1:]
-    receive_domain_events(handler, name='stumbling-steve', binding_keys=binding_keys, dead_letter=True)
+    receiver = Receiver()
+    receiver.register(handler, name='stumbling-steve', binding_keys=binding_keys, dead_letter=True)
+    receiver.start_consuming()

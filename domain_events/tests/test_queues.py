@@ -1,11 +1,5 @@
-from domain_events.transport import Transport
-
-
-def get_transport():
-    transport = Transport(exchange='test_exchange')
-    return transport
+from domain_events.transport import Sender
 
 
 def test_send():
-    transport = get_transport()
-    transport.send('test message', 'x.y')
+    Sender(exchange='test_exchange').send('test message', 'x.y')

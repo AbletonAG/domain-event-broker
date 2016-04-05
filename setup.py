@@ -11,6 +11,6 @@ setup(
     author_email='webteam@ableton.com',
     license='MIT',
     packages=['domain_events'],
-    install_requires=["pika >= 0.9.13"],
+    install_requires=["pika >= 0.10.0"],
     zip_safe=False,
 )
