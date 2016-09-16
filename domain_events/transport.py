@@ -236,21 +236,24 @@ class Receiver(Transport):
                                    )
         self.bind_routing_keys(self.exchange, name, binding_keys)
 
-        # Re-route failed messages to a retry dead letter queue
-        if max_retries > 0:
-            # Declare the exchange where messages expired in the wait queue are routed
-            self.channel.exchange_declare(exchange=retry_exchange, type=self.exchange_type)
-            self.channel.exchange_declare(exchange=delay_exchange, type=self.exchange_type)
-            retry_arguments = {'x-dead-letter-exchange': retry_exchange}
-            result = self.channel.queue_declare(queue=name + '-wait',
-                                                durable=durable,
-                                                arguments=retry_arguments)
-            queue_name = result.method.queue
-            self.bind_routing_keys(delay_exchange, queue_name, binding_keys)
-            # Bind the consumer queue to the retry exchange
-            self.bind_routing_keys(retry_exchange, name, binding_keys)
+        # Re-route failed messages to a retry dead letter queue.
+        # This is only used if max_retries > 0 but we set up the exchanges
+        # anyway so that messages can be replayed manually in the consumer
+        # context.
+        # Declare the exchange where messages expired in the wait queue are routed
+        self.channel.exchange_declare(exchange=retry_exchange, type=self.exchange_type)
+        self.channel.exchange_declare(exchange=delay_exchange, type=self.exchange_type)
+        retry_arguments = {'x-dead-letter-exchange': retry_exchange}
+        result = self.channel.queue_declare(queue=name + '-wait',
+                                            durable=durable,
+                                            arguments=retry_arguments)
+        queue_name = result.method.queue
+        self.bind_routing_keys(delay_exchange, queue_name, binding_keys)
+        # Bind the consumer queue to the retry exchange
+        self.bind_routing_keys(retry_exchange, name, binding_keys)
 
         callback = partial(receive_callback, handler, delay_exchange, max_retries)
+        self.channel.basic_qos(prefetch_count=1)
         self.channel.basic_consume(callback, queue=name)
 
     def stop_consuming(self):
