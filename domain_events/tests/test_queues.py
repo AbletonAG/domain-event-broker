@@ -1,11 +1,15 @@
-from domain_events.transport import Sender, get_sender, configure
+from domain_events import transport
 
 
 def test_send():
-    Sender(exchange='test_exchange').send('test message', 'x.y')
+    transport.Sender(exchange='test_exchange').send('test message', 'x.y')
 
 
 def test_reconfigure_sender():
-    get_sender()
-    configure('amqp://john:doe@localhost:5672')
-    assert get_sender().connection_settings == 'amqp://john:doe@localhost:5672'
+    transport.get_sender()
+    original_settings = transport._connection_settings
+    try:
+        transport.configure('amqp://john:doe@localhost:5672')
+        assert transport.get_sender().connection_settings == 'amqp://john:doe@localhost:5672'
+    finally:
+        transport.configure(original_settings)
