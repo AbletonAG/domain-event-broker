@@ -23,7 +23,10 @@ def configure(connection_settings):
     when emitting domain events.
     """
     global _connection_settings
+    global _sender
     _connection_settings = connection_settings
+    if _sender is not None:
+        _sender.connection_settings = connection_settings
 
 
 def get_sender():
