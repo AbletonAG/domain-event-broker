@@ -13,44 +13,15 @@ log = logging.getLogger(__name__)
 # Default settings for local installation of RabbitMQ
 DEFAULT_CONNECTION_SETTINGS = 'amqp://guest:guest@localhost:5672/%2F'
 
-_connection_settings = DEFAULT_CONNECTION_SETTINGS
-_sender = None
 
-
-def configure(connection_settings):
-    """
-    Override the connection settings for the default transport that is used
-    when emitting domain events.
-    """
-    global _connection_settings
-    global _sender
-    _connection_settings = connection_settings
-    if _sender is not None:
-        _sender.connection_settings = connection_settings
-
-
-def get_sender():
-    global _sender
-    if _sender is None:
-        _sender = Sender()
-    return _sender
-
-
-def emit_domain_event(*args, **kwargs):
+def send_domain_event(connection_settings, *args, **kwargs):
     event = DomainEvent(*args, **kwargs)
     data = json.dumps(event.event_data)
-    get_sender().push(data, event.routing_key)
+    sender = Sender(connection_settings)
+    sender.connect()
+    sender.send(data, event.routing_key)
+    sender.disconnect()
     return event
-
-
-def transmit():
-    if _sender is not None:
-        _sender.transmit()
-
-
-def discard():
-    if _sender is not None:
-        _sender.discard()
 
 
 class Retry(Exception):
@@ -100,14 +71,14 @@ def receive_callback(handler, delay_exchange, max_retries, channel, method, prop
 
 class Transport(object):
 
-    def __init__(self, exchange="domain-events", exchange_type="topic"):
+    def __init__(self, connection_settings, exchange="domain-events", exchange_type="topic"):
         self.exchange = exchange
         self.exchange_type = exchange_type
         self.context_depth = 0
         self.pending = []
         self.connection = None
         self.messages = []
-        self.connection_settings = _connection_settings
+        self.connection_settings = connection_settings
         self.channel = None
 
     def connect(self):
@@ -143,64 +114,16 @@ class Transport(object):
 
 class Sender(Transport):
 
-    def __enter__(self):
-        if self.context_depth == 0:
-            self.connect()
-        self.context_depth += 1
-
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        self.context_depth -= 1
-        if self.context_depth == 0:
-            self.disconnect()
-        return False
-
-    def push(self, data, routing_key=None):
-        self.pending.append((data, routing_key))
-        log.debug("Pushed a message into exchange {}: {}".format(
-            self.exchange, (data, routing_key)))
-
-    def transmit(self):
-        """
-        Open connection prior to transmitting the payload and close right
-        after. We could keep the connection open for subsequent requests but
-        events won't occur that often to justify the additional housekeeping.
-        The whole roundtrip takes about 5-10ms.
-
-        This needs to happen after the DB transaction is committed. All
-        messages pushed since the last transmit are now transmitted to the queuing
-        service.
-        """
-        log.debug("Flushing exchange {}, sending {} messages.".format(
-            self.exchange, len(self.pending)))
-        self.messages = []
-        if self.pending:
-            with self:
-                for message, routing_key in self.pending:
-                    self.send(message, routing_key)
-        self.pending = []
-
-    def discard(self):
-        """
-        Discard all pending events. This can be called after an error so that
-        subsequent requests don't transmit events for actions that have been
-        rolled back.
-        """
-        self.messages = []
-        log.debug("Discarding {} messages.".format(len(self.pending)))
-        self.pending = []
-
     def send(self, message, routing_key=None):
         """
         Send as persistent message.
         """
-        self.messages.append((message, routing_key))
-        with self:
-            self.channel.basic_publish(
-                exchange=self.exchange,
-                routing_key=routing_key,
-                body=message,
-                properties=BasicProperties(delivery_mode=2),
-                )
+        self.channel.basic_publish(
+            exchange=self.exchange,
+            routing_key=routing_key,
+            body=message,
+            properties=BasicProperties(delivery_mode=2),
+            )
 
 
 class Receiver(Transport):

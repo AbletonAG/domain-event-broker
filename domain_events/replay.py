@@ -1,4 +1,4 @@
-from .transport import get_sender
+from .transport import Sender
 
 
 RETRY = 'retry'
@@ -10,10 +10,10 @@ def default_message_callback(**kwargs):
     return RETRY
 
 
-def replay(queue_name, message_callback=default_message_callback):
+def replay(connection_settings, queue_name, message_callback=default_message_callback):
     retry_exchange = queue_name + '-retry'
     dead_letter_queue = queue_name + '-dl'
-    transport = get_sender()
+    transport = Sender(connection_settings)
     transport.connect()
     frame, header, body = transport.channel.basic_get(dead_letter_queue)
     action = message_callback(frame=frame, header=header, body=body)
@@ -33,12 +33,12 @@ def replay(queue_name, message_callback=default_message_callback):
     return frame.message_count
 
 
-def replay_all(queue_name, message_callback=default_message_callback):
+def replay_all(connection_settings, queue_name, message_callback=default_message_callback):
     """
     Replay all messages from the dead-letter queue.
     Return number of messages dead-lettered since starting the replay
     """
-    count = replay(queue_name)
+    count = replay(connection_settings, queue_name, message_callback)
     for _ in range(count):
-        remainder = replay(queue_name, message_callback)
+        remainder = replay(connection_settings, queue_name, message_callback)
     return remainder

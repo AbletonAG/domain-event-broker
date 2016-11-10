@@ -5,10 +5,7 @@ __version__ = get_versions()['version']
 del get_versions
 
 from transport import (
-    configure,
-    discard,
-    emit_domain_event,
-    transmit,
+    send_domain_event,
     DEFAULT_CONNECTION_SETTINGS,
     Receiver,
     Retry,
