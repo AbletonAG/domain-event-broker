@@ -1,20 +1,5 @@
-from functools import partial
 import pika
-from domain_events import (
-    DEFAULT_CONNECTION_SETTINGS,
-    DomainEvent,
-    Receiver,
-    send_domain_event,
-    )
-
-
-test_send_domain_event = partial(send_domain_event, DEFAULT_CONNECTION_SETTINGS)
-
-
-class TestReceiver(Receiver):
-
-    def __init__(self, *args, **kwargs):
-        super(TestReceiver, self).__init__(DEFAULT_CONNECTION_SETTINGS, *args, **kwargs)
+from domain_events import DomainEvent
 
 
 def get_queue_size(name, **kwargs):

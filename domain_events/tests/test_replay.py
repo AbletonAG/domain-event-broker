@@ -1,5 +1,5 @@
-from domain_events import replay, DEFAULT_CONNECTION_SETTINGS
-from .helpers import get_message_from_queue, get_queue_size, TestReceiver, test_send_domain_event
+from domain_events import replay, DEFAULT_CONNECTION_SETTINGS, send_domain_event, Receiver
+from .helpers import get_message_from_queue, get_queue_size
 import pytest
 import uuid
 
@@ -14,10 +14,10 @@ def raise_error(event):
 
 def dead_letter_message():
     name = 'test-replay'
-    receiver = TestReceiver()
+    receiver = Receiver(DEFAULT_CONNECTION_SETTINGS)
     receiver.register(raise_error, name, ['test.replay'], dead_letter=True)
     data = dict(message=str(uuid.uuid4())[:4])
-    test_send_domain_event('test.replay', data)
+    send_domain_event(DEFAULT_CONNECTION_SETTINGS, 'test.replay', data)
     with pytest.raises(ConsumerError):
         receiver.start_consuming(timeout=1.0)
     return data

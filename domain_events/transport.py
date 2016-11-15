@@ -18,7 +18,6 @@ def send_domain_event(connection_settings, *args, **kwargs):
     event = DomainEvent(*args, **kwargs)
     data = json.dumps(event.event_data)
     sender = Sender(connection_settings)
-    sender.connect()
     sender.send(data, event.routing_key)
     sender.disconnect()
     return event
@@ -80,6 +79,7 @@ class Transport(object):
         self.messages = []
         self.connection_settings = connection_settings
         self.channel = None
+        self.connect()
 
     def connect(self):
         """
@@ -127,10 +127,6 @@ class Sender(Transport):
 
 
 class Receiver(Transport):
-
-    def __init__(self, *args, **kwargs):
-        super(Receiver, self).__init__(*args, **kwargs)
-        self.connect()
 
     def bind_routing_keys(self, exchange, queue_name, binding_keys):
         for binding_key in binding_keys:

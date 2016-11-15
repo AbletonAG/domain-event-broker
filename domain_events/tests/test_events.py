@@ -1,27 +1,25 @@
 import json
+from mock import patch
 
-from domain_events import (
-    send_domain_event,
-    DomainEvent,
-    )
-
-from domain_events.transport import get_sender
+from domain_events import DomainEvent, send_domain_event, DEFAULT_CONNECTION_SETTINGS
 
 
+@patch('domain_events.transport.Sender.send')
 class TestEvent(object):
 
-    def test_fire_event(self):
+    def test_fire_event(self, mock):
         """Use basic API to fire event"""
-        event = send_domain_event('test.test', {})
-        json_data, routing_key = get_sender().messages[-1]
+        event = send_domain_event(DEFAULT_CONNECTION_SETTINGS, 'test.test', {})
+        assert mock.called
+        json_data, routing_key = mock.call_args[0]
         event_data = json.loads(json_data)
         assert routing_key == "test.test"
         assert event_data['data'] == {}
         assert event_data['uuid_string'] == event.uuid_string
 
-    def test_event_loading(self):
-        event = send_domain_event('test.test', {})
-        json_data, routing_key = get_sender().messages[-1]
-
+    def test_event_loading(self, mock):
+        event = send_domain_event(DEFAULT_CONNECTION_SETTINGS, 'test.test', {})
+        assert mock.called
+        json_data, routing_key = mock.call_args[0]
         new_event = DomainEvent.from_json(json_data)
         assert new_event == event

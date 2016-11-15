@@ -18,18 +18,15 @@ URL](http://pika.readthedocs.org/en/latest/examples/using_urlparameters.html):
 
 ## Sending events
 
-Events can be sent by calling `emit_domain_event`:
+Events can be sent by calling `send_domain_event`:
 
-    from domain_events import emit_domain_event
-    emit_domain_event('user.disabled', {'user_id': user.id})
-    transmit()
+    from domain_events import send_domain_event
+    send_domain_event('user.disabled', {'user_id': user.id})
 
-Domain events are not sent immediately. Sending is deferred until `transmit` is
-called. This makes it easier to deal with services that access the same
-database so that domains aren't received before a transaction is committed. To
-clear emitted events without sending, `discard` can be used. When using
-database transactions, these functions should be called in a middleware or in a
-post-transaction hook.
+Domain events are sent immediately. When emitting domain events from within a
+database transaction, it's recommended to defer sending until the transaction
+is committed. Using a commit hook avoids spurious domain events if a
+transaction is rolled back after an error.
 
 ## Receiving events
 
