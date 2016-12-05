@@ -17,6 +17,10 @@ _connection_settings = DEFAULT_CONNECTION_SETTINGS
 _sender = None
 
 
+def nop():
+    pass
+
+
 def configure(connection_settings):
     """
     Override the connection settings for the default transport that is used
@@ -59,7 +63,10 @@ class Retry(Exception):
         self.delay = delay
 
 
-def receive_callback(handler, delay_exchange, max_retries, channel, method, properties, body):
+def receive_callback(handler, delay_exchange, max_retries, channel, method, properties, body, consumed_callback=nop, ready_callback=nop):
+    if ready_callback is not nop and not ready_callback():
+        channel.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
+
     event = DomainEvent.from_json(body)
     if properties.headers and 'x-death' in properties.headers:
         # Older RabbitMQ versions (< 3.5) keep adding x-death entries, new
@@ -96,6 +103,7 @@ def receive_callback(handler, delay_exchange, max_retries, channel, method, prop
         raise
     else:
         channel.basic_ack(delivery_tag=method.delivery_tag)
+    consumed_callback()
 
 
 class Transport(object):
@@ -206,6 +214,7 @@ class Sender(Transport):
 class Receiver(Transport):
 
     def __init__(self, *args, **kwargs):
+        self.max_messages = kwargs.pop('max_messages', None)
         super(Receiver, self).__init__(*args, **kwargs)
         self.connect()
 
@@ -214,6 +223,26 @@ class Receiver(Transport):
             self.channel.queue_bind(exchange=exchange,
                                     routing_key=binding_key,
                                     queue=queue_name)
+
+
+    def receiver_ready(self):
+        ready = True
+        if self.max_messages is not None and self.max_messages <= 0:
+            ready = False
+
+        return ready
+
+
+    def message_consumed(self):
+        """Consumed message count-down, if 'max_messages' was given to Receiver.
+        Note that 'max_messages' is the maximum number of messages consumed for all
+        queues that are configured for the Receiver.
+        """
+        if self.max_messages is not None:
+            self.max_messages -= 1
+            if self.max_messages <= 0:
+                self.stop_consuming()
+
 
     def register(self, handler, name, binding_keys=(), dead_letter=False,
                  durable=True, exclusive=False, auto_delete=False,
@@ -255,7 +284,14 @@ class Receiver(Transport):
         # Bind the consumer queue to the retry exchange
         self.bind_routing_keys(retry_exchange, name, binding_keys)
 
-        callback = partial(receive_callback, handler, delay_exchange, max_retries)
+        callback = partial(
+                receive_callback,
+                handler,
+                delay_exchange,
+                max_retries,
+                consumed_callback=self.message_consumed,
+                ready_callback=self.receiver_ready,
+                )
         self.channel.basic_qos(prefetch_count=1)
         self.channel.basic_consume(callback, queue=name)
 

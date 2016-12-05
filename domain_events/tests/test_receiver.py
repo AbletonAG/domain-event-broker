@@ -63,10 +63,28 @@ def test_multiple_listeneres():
     assert two.received == 1
 
 
-def test_consumer_timeout():
-    name = 'test-consumer-timeout'
+def test_maximum_number_of_messages():
+    def one(event):
+        one.received += 1
+    one.received = 0
+
+    def two(event):
+        two.received += 1
+    two.received = 0
+
+    receiver = Receiver(max_messages=1)
+    receiver.register(one, 'test-max-listener-one', ['test.max.one'])
+    receiver.register(two, 'test-max-listener-two', ['test.max.two'])
+    emit_domain_event('test.max.one', {})
+    emit_domain_event('test.max.two', {})
+    transmit()
+    receiver.start_consuming(timeout=1.0)
+    assert (one.received + two.received) == 1
+
+
+def xtest_consumer_timeout():
     receiver = Receiver()
-    receiver.register(nop, name, ['#'])
+    receiver.register(nop, 'test-consumer-timeout', ['#'])
     receiver.start_consuming(timeout=1.0)
 
 
