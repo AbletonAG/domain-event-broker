@@ -10,7 +10,7 @@ from domain_events import (
 from domain_events.transport import get_sender
 
 
-class TestEvent(object):
+class EventTests(object):
 
     def test_fire_event(self):
         """Use basic API to fire event"""
