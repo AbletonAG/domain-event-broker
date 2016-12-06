@@ -13,6 +13,7 @@ from transport import (
     Receiver,
     Retry,
     Sender,
+    SingleQueueReceiver,
 )
 
 from events import (

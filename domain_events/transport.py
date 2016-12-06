@@ -17,8 +17,21 @@ _connection_settings = DEFAULT_CONNECTION_SETTINGS
 _sender = None
 
 
+class ReceiverError(Exception):
+    pass
+
+
 def nop():
     pass
+
+
+def get_queue_size(name, **kwargs):
+    connection = pika.BlockingConnection()
+    channel = connection.channel()
+    q = channel.queue_declare(name, passive=True, **kwargs)
+    count = q.method.message_count
+    connection.close()
+    return count
 
 
 def configure(connection_settings):
@@ -63,10 +76,13 @@ class Retry(Exception):
         self.delay = delay
 
 
-def receive_callback(handler, delay_exchange, max_retries, channel, method, properties, body, consumed_callback=nop, ready_callback=nop):
-    if ready_callback is not nop and not ready_callback():
-        channel.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
-
+def receive_callback(handler,
+                     delay_exchange,
+                     max_retries, channel,
+                     method,
+                     properties,
+                     body,
+                     consumed_callback=nop):
     event = DomainEvent.from_json(body)
     if properties.headers and 'x-death' in properties.headers:
         # Older RabbitMQ versions (< 3.5) keep adding x-death entries, new
@@ -83,7 +99,8 @@ def receive_callback(handler, delay_exchange, max_retries, channel, method, prop
     except Retry as error:
         if event.retries < max_retries:
             # Publish manually to the delay exchange with a per-message TTL
-            log.info("Retry ({event.retries}) consuming event {event} in {delay:.1f}s".format(event=event, delay=error.delay))
+            msg = "Retry ({}) consuming event {} in {.1f}s"
+            log.info(msg.format(event.retries, event, error.delay))
             channel.basic_ack(delivery_tag=method.delivery_tag)
             properties.expiration = str(int(error.delay * 1000))
             channel.basic_publish(exchange=delay_exchange,
@@ -214,7 +231,6 @@ class Sender(Transport):
 class Receiver(Transport):
 
     def __init__(self, *args, **kwargs):
-        self.max_messages = kwargs.pop('max_messages', None)
         super(Receiver, self).__init__(*args, **kwargs)
         self.connect()
 
@@ -225,28 +241,9 @@ class Receiver(Transport):
                                     queue=queue_name)
 
 
-    def receiver_ready(self):
-        ready = True
-        if self.max_messages is not None and self.max_messages <= 0:
-            ready = False
-
-        return ready
-
-
-    def message_consumed(self):
-        """Consumed message count-down, if 'max_messages' was given to Receiver.
-        Note that 'max_messages' is the maximum number of messages consumed for all
-        queues that are configured for the Receiver.
-        """
-        if self.max_messages is not None:
-            self.max_messages -= 1
-            if self.max_messages <= 0:
-                self.stop_consuming()
-
-
     def register(self, handler, name, binding_keys=(), dead_letter=False,
                  durable=True, exclusive=False, auto_delete=False,
-                 max_retries=0):
+                 max_retries=0, message_consumed_callback=nop):
         retry_exchange = name + '-retry'
         delay_exchange = name + '-delay'
         dead_letter_exchange = name + '-dlx'
@@ -289,11 +286,13 @@ class Receiver(Transport):
                 handler,
                 delay_exchange,
                 max_retries,
-                consumed_callback=self.message_consumed,
-                ready_callback=self.receiver_ready,
+                consumed_callback=message_consumed_callback,
                 )
-        self.channel.basic_qos(prefetch_count=1)
-        self.channel.basic_consume(callback, queue=name)
+        if self._should_consume(queue_name):
+            self.channel.basic_qos(prefetch_count=1)
+            self.channel.basic_consume(callback, queue=name)
+        else:
+            self.disconnect()
 
     def stop_consuming(self):
         self.channel.stop_consuming()
@@ -313,3 +312,44 @@ class Receiver(Transport):
         except:
             self.stop_consuming()
             raise
+
+    def _should_consume(self, queue_name):
+        return True
+
+
+class SingleQueueReceiver(Receiver):
+
+    def __init__(self, *args, **kwargs):
+        self.limit_messages = kwargs.pop('limit_messages', False)
+        super(SingleQueueReceiver, self).__init__(*args, **kwargs)
+        self.has_registered = False
+
+
+    def message_consumed(self):
+        """Consumed message count-down, if 'max_messages' was given to Receiver.
+        Note that 'max_messages' is the maximum number of messages consumed for all
+        queues that are configured for the Receiver.
+        """
+        if self.limit_messages:
+            self.consumed_messages += 1
+            if self.consumed_messages >= self.message_count:
+                self.stop_consuming()
+
+
+    def _should_consume(self, queue_name):
+        should_consume = True
+        if self.limit_messages and not self.message_count:
+            self.message_count = get_queue_size(queue_name)
+            if self.message_count == 0:
+                should_consume = False
+        return should_consume
+
+
+    def register(self, *args, **kwargs):
+        self.message_count = kwargs.pop('message_count', 0)
+        self.consumed_messages = 0
+        if self.has_registered:
+            raise ReceiverError("Can only register one queue with this receiver")
+        self.registered = True
+        kwargs['message_consumed_callback'] = self.message_consumed
+        return super(SingleQueueReceiver, self).register(*args, **kwargs)

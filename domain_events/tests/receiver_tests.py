@@ -1,4 +1,10 @@
-from domain_events import emit_domain_event, Receiver, Retry, transmit
+from domain_events import (
+    emit_domain_event,
+    Receiver,
+    Retry,
+    SingleQueueReceiver,
+    transmit,
+    )
 from .helpers import check_queue_exists, get_message_from_queue, get_queue_size
 import pytest
 import uuid
@@ -72,14 +78,13 @@ def test_maximum_number_of_messages():
         two.received += 1
     two.received = 0
 
-    receiver = Receiver(max_messages=1)
-    receiver.register(one, 'test-max-listener-one', ['test.max.one'])
-    receiver.register(two, 'test-max-listener-two', ['test.max.two'])
+    receiver = SingleQueueReceiver(limit_messages=True)
+    receiver.register(one, 'test-max-listener-one', ['test.max.one'], message_count=1)
     emit_domain_event('test.max.one', {})
-    emit_domain_event('test.max.two', {})
+    emit_domain_event('test.max.one', {})
     transmit()
     receiver.start_consuming(timeout=1.0)
-    assert (one.received + two.received) == 1
+    assert (one.received) == 1
 
 
 def xtest_consumer_timeout():
