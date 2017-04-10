@@ -14,7 +14,8 @@ log = logging.getLogger(__name__)
 DEFAULT_CONNECTION_SETTINGS = 'amqp://guest:guest@localhost:5672/%2F'
 
 
-def send_domain_event(connection_settings, *args, **kwargs):
+def send_domain_event(*args, **kwargs):
+    connection_settings = kwargs.pop('connection_settings', DEFAULT_CONNECTION_SETTINGS)
     event = DomainEvent(*args, **kwargs)
     data = json.dumps(event.event_data)
     sender = Sender(connection_settings)
@@ -70,7 +71,8 @@ def receive_callback(handler, delay_exchange, max_retries, channel, method, prop
 
 class Transport(object):
 
-    def __init__(self, connection_settings, exchange="domain-events", exchange_type="topic"):
+    def __init__(self, connection_settings=DEFAULT_CONNECTION_SETTINGS,
+                 exchange="domain-events", exchange_type="topic"):
         self.exchange = exchange
         self.exchange_type = exchange_type
         self.context_depth = 0

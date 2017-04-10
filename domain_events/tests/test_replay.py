@@ -1,4 +1,4 @@
-from domain_events import replay, DEFAULT_CONNECTION_SETTINGS, send_domain_event, Receiver
+from domain_events import replay, send_domain_event, Receiver
 from .helpers import get_message_from_queue, get_queue_size
 import pytest
 import uuid
@@ -14,10 +14,12 @@ def raise_error(event):
 
 def dead_letter_message():
     name = 'test-replay'
-    receiver = Receiver(DEFAULT_CONNECTION_SETTINGS)
+    receiver = Receiver()
+    receiver.channel.queue_delete(queue='test-replay')
+    receiver.channel.queue_delete(queue='test-replay-dl')
     receiver.register(raise_error, name, ['test.replay'], dead_letter=True)
     data = dict(message=str(uuid.uuid4())[:4])
-    send_domain_event(DEFAULT_CONNECTION_SETTINGS, 'test.replay', data)
+    send_domain_event('test.replay', data)
     with pytest.raises(ConsumerError):
         receiver.start_consuming(timeout=1.0)
     return data
@@ -25,7 +27,7 @@ def dead_letter_message():
 
 def test_replay():
     data = dead_letter_message()
-    assert replay.replay(DEFAULT_CONNECTION_SETTINGS, 'test-replay') == 0
+    assert replay.replay('test-replay') == 0
     assert get_queue_size('test-replay-dl') == 0
     header, event = get_message_from_queue('test-replay')
     assert event.data == data
@@ -37,7 +39,7 @@ def discard(**kwargs):
 
 def test_discard():
     dead_letter_message()
-    assert replay.replay(DEFAULT_CONNECTION_SETTINGS, 'test-replay', message_callback=discard) == 0
+    assert replay.replay('test-replay', message_callback=discard) == 0
     assert get_queue_size('test-replay-dl') == 0
     assert get_queue_size('test-replay') == 0
 
@@ -48,7 +50,7 @@ def leave(**kwargs):
 
 def test_leave():
     message = dead_letter_message()
-    assert replay.replay(DEFAULT_CONNECTION_SETTINGS, 'test-replay', message_callback=leave) == 0
+    assert replay.replay('test-replay', message_callback=leave) == 0
     assert get_queue_size('test-replay-dl') == 1
     assert get_queue_size('test-replay') == 0
     header, event = get_message_from_queue('test-replay-dl')

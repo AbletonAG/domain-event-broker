@@ -3,7 +3,7 @@
 import logging
 import sys
 
-from domain_events import Receiver, Retry, DEFAULT_CONNECTION_SETTINGS
+from domain_events import Receiver, Retry
 
 
 logging.basicConfig(level=logging.INFO)
@@ -16,6 +16,6 @@ def handler(event):
 
 if __name__ == '__main__':
     binding_keys = sys.argv[1:]
-    receiver = Receiver(DEFAULT_CONNECTION_SETTINGS)
+    receiver = Receiver()
     receiver.register(handler, name='retry-ronny', binding_keys=binding_keys, max_retries=3)
     receiver.start_consuming()

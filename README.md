@@ -7,15 +7,6 @@ each other and can be started and stopped in any order. Each receiver controls
 their own retry policy, whether they need a durable queue for the time they are
 down, or a dead-letter queue in case there is an error in the receiver.
 
-## Configuration
-
-This library needs to connect to RabbitMQ. By default, a local instance of
-RabbitMQ is used. This can be changed by calling configure with an [amqp
-URL](http://pika.readthedocs.org/en/latest/examples/using_urlparameters.html):
-
-    from domain_events import configure
-    configure('amqp://user:password@rabbitmq-host/domain-events')
-
 ## Sending events
 
 Events can be sent by calling `send_domain_event`:
@@ -45,6 +36,16 @@ This script will receive all events that are sent in the user domain:
     receiver = Receiver()
     receiver.register(handle_user_event, 'printer', ['user.*'])
     receiver.start_consuming()
+
+## Configuration
+
+This library needs to connect to RabbitMQ. By default, a local instance of
+RabbitMQ is used. This can be changed by passing an [amqp
+URL](http://pika.readthedocs.org/en/latest/examples/using_urlparameters.html)
+to `send_domain_event` or when instantiating `Sender` or `Receiver`:
+
+    from domain_events import Receiver
+    receiver = Receiver('amqp://user:password@rabbitmq-host/domain-events')
 
 ### Retry policy
 
@@ -83,13 +84,13 @@ Make sure you have RabbitMQ installed locally for testing.
 * run `pip install -r requirements.txt -r dev_requirements.txt -e .`
 * the only external dependency (so far) is `pika`
 
-## Architecture
+### Architecture
 
 There's
 
 * Generic domain events: `domain_events.events`
 * The transport, via rabbitmq: `domain_events.transport`
 
-## Testing
+### Testing
 
-Testing is done by `py.test` which allows some quite advanced testing features.
+Testing is done by `py.test`.

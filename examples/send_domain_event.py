@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 import logging
 
-from domain_events import send_domain_event, DEFAULT_CONNECTION_SETTINGS
+from domain_events import send_domain_event
 
 logging.basicConfig()
 
 
 def main():
-    event = send_domain_event(DEFAULT_CONNECTION_SETTINGS, 'test_domain.event_has_happened', data={'myinfo':'foo'})
+    event = send_domain_event('test_domain.event_has_happened', data={'myinfo':'foo'})
     print " [x] Sent %r" % event
 
 
