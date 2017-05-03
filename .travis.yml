@@ -5,5 +5,5 @@ before_install:
     - sudo apt-get -qq update
     - sudo apt-get install -y rabbitmq-server
 install:
-    - pip install -r requirements.txt -r dev_requirements.txt -e .
+    - pip install -r requirements.txt -e .
 script: py.test
