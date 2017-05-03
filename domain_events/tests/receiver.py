@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sys
-from test_queues import get_queue
+from .test_queues import get_queue
 
 queue_name, binding_key = sys.argv[1:]
 

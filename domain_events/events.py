@@ -60,6 +60,10 @@ class DomainEvent(object):
         """Create a DomainEvent from json_data. Note that you probably want to dispatch first based on
         domain and event type
         """
+        try:
+            json_data = json_data.decode('utf-8')
+        except AttributeError:
+            pass
         return cls(**json.loads(json_data))
 
     def __repr__(self):

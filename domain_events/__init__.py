@@ -4,7 +4,7 @@ from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions
 
-from transport import (
+from .transport import (
     send_domain_event,
     DEFAULT_CONNECTION_SETTINGS,
     Receiver,
@@ -12,6 +12,6 @@ from transport import (
     Sender,
 )
 
-from events import (
+from .events import (
     DomainEvent,
 )
