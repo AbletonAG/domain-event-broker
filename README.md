@@ -7,6 +7,34 @@ each other and can be started and stopped in any order. Each receiver controls
 their own retry policy, whether they need a durable queue for the time they are
 down, or a dead-letter queue in case there is an error in the receiver.
 
+## Configuration
+
+This library needs to connect to RabbitMQ. By default, a local instance of
+RabbitMQ is used. This can be changed by passing an [amqp
+URL](http://pika.readthedocs.org/en/latest/examples/using_urlparameters.html)
+to `send_domain_event` or when instantiating `Sender` or `Receiver`:
+
+    from domain_events import Receiver
+    receiver = Receiver('amqp://user:password@rabbitmq-host/domain-events')
+
+## Integrations
+
+### Django
+
+This library can be configured via your Django settings. Add
+*domain_events.django* to your `INSTALLED_APPS` and set the
+`DOMAIN_EVENT_BROKER` in your settings:
+
+    INSTALLED_APPS = (
+        'domain_events.django',
+        )
+
+    DOMAIN_EVENT_BROKER = 'amqp://user:password@rabbitmq-host/domain-events'
+
+You can also set `DOMAIN_EVENT_PRODUCER_BROKER` or
+`DOMAIN_EVENT_CONSUMER_BROKER` for using different connection settings when
+sending or receiving domain events.
+
 ## Sending events
 
 Events can be sent by calling `send_domain_event`:
@@ -36,16 +64,6 @@ This script will receive all events that are sent in the user domain:
     receiver = Receiver()
     receiver.register(handle_user_event, 'printer', ['user.*'])
     receiver.start_consuming()
-
-## Configuration
-
-This library needs to connect to RabbitMQ. By default, a local instance of
-RabbitMQ is used. This can be changed by passing an [amqp
-URL](http://pika.readthedocs.org/en/latest/examples/using_urlparameters.html)
-to `send_domain_event` or when instantiating `Sender` or `Receiver`:
-
-    from domain_events import Receiver
-    receiver = Receiver('amqp://user:password@rabbitmq-host/domain-events')
 
 ### Retry policy
 
