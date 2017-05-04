@@ -7,15 +7,13 @@ from pika import (
     URLParameters,
     )
 from .events import DomainEvent
+from . import settings
 
 log = logging.getLogger(__name__)
 
-# Default settings for local installation of RabbitMQ
-DEFAULT_CONNECTION_SETTINGS = 'amqp://guest:guest@localhost:5672/%2F'
-
 
 def send_domain_event(*args, **kwargs):
-    connection_settings = kwargs.pop('connection_settings', DEFAULT_CONNECTION_SETTINGS)
+    connection_settings = kwargs.pop('connection_settings', settings.PRODUCER_BROKER)
     event = DomainEvent(*args, **kwargs)
     data = json.dumps(event.event_data)
     sender = Sender(connection_settings)
@@ -71,7 +69,9 @@ def receive_callback(handler, delay_exchange, max_retries, channel, method, prop
 
 class Transport(object):
 
-    def __init__(self, connection_settings=DEFAULT_CONNECTION_SETTINGS,
+    DEFAULT_BROKER = settings.BROKER
+
+    def __init__(self, connection_settings=None,
                  exchange="domain-events", exchange_type="topic"):
         self.exchange = exchange
         self.exchange_type = exchange_type
@@ -79,6 +79,8 @@ class Transport(object):
         self.pending = []
         self.connection = None
         self.messages = []
+        if connection_settings is None:
+            connection_settings = self.DEFAULT_BROKER
         self.connection_settings = connection_settings
         self.channel = None
         self.connect()
@@ -116,6 +118,8 @@ class Transport(object):
 
 class Sender(Transport):
 
+    DEFAULT_BROKER = settings.PRODUCER_BROKER
+
     def send(self, message, routing_key=None):
         """
         Send as persistent message.
@@ -129,6 +133,8 @@ class Sender(Transport):
 
 
 class Receiver(Transport):
+
+    DEFAULT_BROKER = settings.CONSUMER_BROKER
 
     def bind_routing_keys(self, exchange, queue_name, binding_keys):
         for binding_key in binding_keys:

@@ -6,7 +6,6 @@ del get_versions
 
 from .transport import (
     send_domain_event,
-    DEFAULT_CONNECTION_SETTINGS,
     Receiver,
     Retry,
     Sender,
