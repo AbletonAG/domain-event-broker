@@ -111,4 +111,5 @@ There's
 
 ### Testing
 
-Testing is done by `py.test`.
+Testing is done by `py.test` for the core tests and the Django test runner
+(`python runtests.py`) for Django-specific tests.
