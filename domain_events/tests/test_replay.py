@@ -1,30 +1,5 @@
-from domain_events import replay, publish_domain_event, Subscriber
+from domain_events import replay
 from .helpers import get_message_from_queue, get_queue_size
-import pytest
-import uuid
-
-
-class ConsumerError(Exception):
-    pass
-
-
-def raise_error(event):
-    raise ConsumerError("Unexpected error")
-
-
-@pytest.fixture
-def dead_letter_message():
-    name = 'test-replay'
-    subscriber = Subscriber()
-    subscriber.register(raise_error, name, ['test.replay'], dead_letter=True)
-    data = dict(message=str(uuid.uuid4())[:4])
-    publish_domain_event('test.replay', data)
-    with pytest.raises(ConsumerError):
-        subscriber.start_consuming(timeout=1.0)
-    yield data
-    transport = Subscriber()
-    transport.channel.queue_delete(queue='test-replay')
-    transport.channel.queue_delete(queue='test-replay-dl')
 
 
 def test_replay(dead_letter_message):
