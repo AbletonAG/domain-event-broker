@@ -12,6 +12,6 @@ class DomainEventsConfig(AppConfig):
     def ready(self):
         settings.configure(
             getattr(djsettings, 'DOMAIN_EVENT_BROKER', None),
-            getattr(djsettings, 'DOMAIN_EVENT_PRODUCER_BROKER', None),
-            getattr(djsettings, 'DOMAIN_EVENT_CONSUMER_BROKER', None),
+            getattr(djsettings, 'DOMAIN_EVENT_PUBLISHER_BROKER', None),
+            getattr(djsettings, 'DOMAIN_EVENT_SUBSCRIBER_BROKER', None),
             )

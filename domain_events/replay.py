@@ -15,7 +15,7 @@ def replay(queue_name, message_callback=default_message_callback, connection_set
     retry_exchange = queue_name + '-retry'
     dead_letter_queue = queue_name + '-dl'
     if connection_settings is None:
-        connection_settings = settings.CONSUMER_BROKER
+        connection_settings = settings.SUBSCRIBER_BROKER
     transport = Transport(connection_settings)
     transport.connect()
     frame, header, body = transport.channel.basic_get(dead_letter_queue)

@@ -2,7 +2,7 @@
 
 import sys
 
-from domain_events import Receiver
+from domain_events import Subscriber
 
 
 def log_event(event):
@@ -11,6 +11,6 @@ def log_event(event):
 
 if __name__ == '__main__':
     binding_keys = sys.argv[1:]
-    receiver = Receiver()
-    receiver.register(log_event, name='simple-receiver', binding_keys=binding_keys)
-    receiver.start_consuming()
+    subscriber = Subscriber()
+    subscriber.register(log_event, name='simple-subscriber', binding_keys=binding_keys)
+    subscriber.start_consuming()

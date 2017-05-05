@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 import logging
 
-from domain_events import send_domain_event
+from domain_events import publish_domain_event
 
 logging.basicConfig()
 
 
 def main():
-    event = send_domain_event('test_domain.event_has_happened', data={'myinfo':'foo'})
+    event = publish_domain_event('test_domain.event_has_happened', data={'myinfo':'foo'})
     print " [x] Sent %r" % event
 
 

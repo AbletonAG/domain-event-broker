@@ -35,9 +35,9 @@ class DomainEvent(object):
 
         @retries -> int : Number of times this event was delivered to a consumer already.
 
-        ASSUMPTION: when sending and receiving an event,
+        ASSUMPTION: when publishing and receiving an event,
         we have a one to one correspondence between event type and queue.
-        If a receiver receives more than one event type, one need to use the lower queue primitives.
+        If a subscriber receives more than one event type, one need to use the lower queue primitives.
 
         The routing key is of the form <DOMAIN>.<EVENT_TYPE>
         """

@@ -12,13 +12,13 @@ from . import settings
 log = logging.getLogger(__name__)
 
 
-def send_domain_event(*args, **kwargs):
-    connection_settings = kwargs.pop('connection_settings', settings.PRODUCER_BROKER)
+def publish_domain_event(*args, **kwargs):
+    connection_settings = kwargs.pop('connection_settings', settings.PUBLISHER_BROKER)
     event = DomainEvent(*args, **kwargs)
     data = json.dumps(event.event_data)
-    sender = Sender(connection_settings)
-    sender.send(data, event.routing_key)
-    sender.disconnect()
+    publisher = Publisher(connection_settings)
+    publisher.publish(data, event.routing_key)
+    publisher.disconnect()
     return event
 
 
@@ -69,7 +69,7 @@ def receive_callback(handler, delay_exchange, max_retries, channel, method, prop
 
 class Transport(object):
 
-    DEFAULT_BROKER = settings.BROKER
+    BROKER = settings.BROKER
 
     def __init__(self, connection_settings=None,
                  exchange="domain-events", exchange_type="topic"):
@@ -80,7 +80,7 @@ class Transport(object):
         self.connection = None
         self.messages = []
         if connection_settings is None:
-            connection_settings = self.DEFAULT_BROKER
+            connection_settings = self.BROKER
         self.connection_settings = connection_settings
         self.channel = None
         self.connect()
@@ -116,11 +116,11 @@ class Transport(object):
         self.connection = None
 
 
-class Sender(Transport):
+class Publisher(Transport):
 
-    DEFAULT_BROKER = settings.PRODUCER_BROKER
+    BROKER = settings.PUBLISHER_BROKER
 
-    def send(self, message, routing_key=None):
+    def publish(self, message, routing_key=None):
         """
         Send as persistent message.
         """
@@ -132,9 +132,9 @@ class Sender(Transport):
             )
 
 
-class Receiver(Transport):
+class Subscriber(Transport):
 
-    DEFAULT_BROKER = settings.CONSUMER_BROKER
+    BROKER = settings.SUBSCRIBER_BROKER
 
     def bind_routing_keys(self, exchange, queue_name, binding_keys):
         for binding_key in binding_keys:
@@ -157,7 +157,7 @@ class Receiver(Transport):
             self.bind_routing_keys(dead_letter_exchange, queue_name, binding_keys)
             arguments["x-dead-letter-exchange"] = dead_letter_exchange
 
-        # Create receiver queue and bind to the default exchange
+        # Create subscriber queue and bind to the default exchange
         self.channel.queue_declare(queue=name,
                                    durable=durable,
                                    exclusive=exclusive,

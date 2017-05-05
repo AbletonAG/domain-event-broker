@@ -5,10 +5,10 @@ __version__ = get_versions()['version']
 del get_versions
 
 from .transport import (
-    send_domain_event,
-    Receiver,
+    publish_domain_event,
+    Subscriber,
     Retry,
-    Sender,
+    Publisher,
 )
 
 from .events import (
