@@ -1,6 +1,6 @@
 import versioneer
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='domain_events',
@@ -11,7 +11,7 @@ setup(
     author_email='webteam@ableton.com',
     url='https://github.com/AbletonAG/domain-events',
     license='MIT',
-    packages=['domain_events'],
+    packages=find_packages(),
     install_requires=["pika >= 0.10.0"],
     zip_safe=False,
 )
