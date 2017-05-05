@@ -13,5 +13,6 @@ setup(
     license='MIT',
     packages=find_packages(),
     install_requires=["pika >= 0.10.0"],
+    tests_require=["pytest >= 3.0.0", "mock"],
     zip_safe=False,
 )

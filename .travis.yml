@@ -5,10 +5,12 @@ python:
     - "3.6"
 services:
     - rabbitmq
+env:
+    - DJANGO="django>=1.10,<1.11"
+    - DJANGO="django>=1.11,<1.12"
 install:
     - pip install -r requirements.txt -e .
     - pip install -U pytest
-    - pip install Django
+    - pip install Django==$DJANGO pytest-django
 script:
-    - py.test --ignore domain_events/tests/django
-    - python runtests.py
+    - py.test

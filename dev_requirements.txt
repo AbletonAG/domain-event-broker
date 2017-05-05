@@ -3,5 +3,9 @@ ipdb
 ipython
 mock
 py
-pytest
+pytest >= 3.0.0
 wheel
+
+# Requirements for the Django integration
+Django >= 1.10
+pytest-django
