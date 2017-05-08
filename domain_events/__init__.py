@@ -11,6 +11,14 @@ from .transport import (
     Publisher,
 )
 
+from .replay import (
+    replay_event,
+    replay_all,
+    RETRY,
+    DISCARD,
+    LEAVE,
+)
+
 from .events import (
     DomainEvent,
 )

@@ -24,5 +24,3 @@ def dead_letter_message():
     transport = Subscriber()
     transport.channel.queue_delete(queue='test-replay')
     transport.channel.queue_delete(queue='test-replay-dl')
-
-

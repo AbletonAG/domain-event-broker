@@ -2,15 +2,10 @@ from django.core.management.base import BaseCommand
 
 from domain_events import replay
 
-
-def interactive_filter(body=None, **kwargs):
-    print ("Please specify action for: '{}'".format(body))
-    action = raw_input("(R)eplay, (D)iscard or (L)eave? ")[0].upper()
-    return {
-        'R': replay.RETRY,
-        'D': replay.DISCARD,
-        'L': replay.LEAVE,
-        }[action]
+try:
+    input = raw_input
+except NameError:
+    pass
 
 
 class Command(BaseCommand):
@@ -34,13 +29,22 @@ class Command(BaseCommand):
             help='Ask for desired action for each event.',
         )
 
+    def interactive_filter(self, body=None, **kwargs):
+        self.stdout.write("Please specify action for: '{}'".format(body))
+        action = input("(R)eplay, (D)iscard or (L)eave? ")[0].upper()
+        return {
+            'R': replay.RETRY,
+            'D': replay.DISCARD,
+            'L': replay.LEAVE,
+            }[action]
+
     def handle(self, *args, **options):
-        callback = replay.default_message_callback
+        callback = replay.retry_event
         if options['interactive']:
-            callback = interactive_filter
+            callback = self.interactive_filter
         for queue in options['queue']:
             if options['replay_all']:
                 remaining = replay.replay_all(queue, callback)
             else:
-                remaining = replay.replay(queue, callback)
+                remaining = replay.replay_event(queue, callback)
             self.stdout.write("{} dead-lettered events remaining for {}".format(remaining, queue))

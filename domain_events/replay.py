@@ -7,11 +7,22 @@ LEAVE = 'leave'
 DISCARD = 'discard'
 
 
-def default_message_callback(**kwargs):
+def retry_event(**kwargs):
     return RETRY
 
 
-def replay(queue_name, message_callback=default_message_callback, connection_settings=None):
+def replay_event(queue_name, message_callback=retry_event, connection_settings=None):
+    """
+    Move one domain event from a dead-letter queue back into the processing queue.
+
+    :param str queue_name: Name of the queue where to move the event.
+    :param function message_callback: A callable that receives the event and
+        returns either ``RETRY``, ``LEAVE`` or ``DISCARD``.
+    :param str connection_settings:
+
+    :return: The number of messages left in the dead letter queue.
+    :rtype: int
+    """
     retry_exchange = queue_name + '-retry'
     dead_letter_queue = queue_name + '-dl'
     if connection_settings is None:
@@ -36,12 +47,12 @@ def replay(queue_name, message_callback=default_message_callback, connection_set
     return frame.message_count
 
 
-def replay_all(queue_name, message_callback=default_message_callback, connection_settings=None):
+def replay_all(queue_name, message_callback=retry_event, connection_settings=None):
     """
-    Replay all messages from the dead-letter queue.
-    Return number of messages dead-lettered since starting the replay
+    Replay all messages currently in the dead-letter queue.
+    Return number of messages dead-lettered since starting the replay.
     """
-    remainder = replay(queue_name, message_callback, connection_settings=connection_settings)
+    remainder = replay_event(queue_name, message_callback, connection_settings=connection_settings)
     for _ in range(remainder):
-        remainder = replay(queue_name, message_callback, connection_settings=connection_settings)
+        remainder = replay_event(queue_name, message_callback, connection_settings=connection_settings)
     return remainder

@@ -12,9 +12,26 @@ from . import settings
 log = logging.getLogger(__name__)
 
 
-def publish_domain_event(*args, **kwargs):
-    connection_settings = kwargs.pop('connection_settings', settings.PUBLISHER_BROKER)
-    event = DomainEvent(*args, **kwargs)
+def publish_domain_event(routing_key, data, domain_object_id=None,
+                         connection_settings=None):
+    """
+    Send a domain event to the message broker. The broker will take care of
+    dispatching the event to registered subscribers.
+
+    :param str routing_key: The routing key is of the form
+        ``<DOMAIN>.<EVENT_TYPE>``.  The routing key should be a descriptive
+        name of the domain event such as ``user.registered``.
+    :param dict data: The actual event data. *Must* be json serializable.
+    :param str domain_object_id: Domain identifier of the event. This field
+        is optional. If used, it might make search in an event store easier.
+    :param str connection_settings: Specify the broker with an AMQP URL. If not
+        given, the default broker will be used.
+
+    :return: The domain event that was published.
+    :rtype: :py:class:`domain_events.DomainEvent`
+    """
+    event = DomainEvent(routing_key=routing_key, data=data,
+                        domain_object_id=domain_object_id)
     data = json.dumps(event.event_data)
     publisher = Publisher(connection_settings)
     publisher.publish(data, event.routing_key)
@@ -23,6 +40,17 @@ def publish_domain_event(*args, **kwargs):
 
 
 class Retry(Exception):
+    """
+    Raise this exception in an event handler to schedule a delayed retry.
+
+    .. note::
+
+        Internally a delay exchange with a per-message TTL is used and all
+        delayed events for a handler are placed in one queue. Only the event at
+        the head of the queue can be processed - if events with a short delay
+        queue up behind an event with a long delay, those events all have to
+        wait until the event at the head is processed.
+    """
     def __init__(self, delay=10.0):
         super(Retry, self).__init__()
         self.delay = delay
@@ -45,7 +73,8 @@ def receive_callback(handler, delay_exchange, max_retries, channel, method, prop
     except Retry as error:
         if event.retries < max_retries:
             # Publish manually to the delay exchange with a per-message TTL
-            log.info("Retry ({event.retries}) consuming event {event} in {delay:.1f}s".format(event=event, delay=error.delay))
+            log.info("Retry ({event.retries}) consuming event {event} in {delay:.1f}s".format(
+                event=event, delay=error.delay))
             channel.basic_ack(delivery_tag=method.delivery_tag)
             properties.expiration = str(int(error.delay * 1000))
             channel.basic_publish(exchange=delay_exchange,
@@ -133,6 +162,17 @@ class Publisher(Transport):
 
 
 class Subscriber(Transport):
+    """
+    A subscriber manages the registration of one or more event handlers. Once
+    instantiated, call ``register`` to add subscribers and ``start_consuming``
+    to wait for incoming events.
+
+    .. note::
+
+        The subscriber only uses one thread for processing events. Even if
+        multiple handlers are registered, only one event is processed at a
+        time.
+    """
 
     BROKER = settings.SUBSCRIBER_BROKER
 
@@ -145,6 +185,24 @@ class Subscriber(Transport):
     def register(self, handler, name, binding_keys=(), dead_letter=False,
                  durable=True, exclusive=False, auto_delete=False,
                  max_retries=0):
+        """
+        Register a handler for one or more types of domain events.
+
+        :param function handler: This function will be called when an event
+            happens. It receives a ``DomainEvent`` as the only parameter.
+        :param str name: Name of the handler. The name is used a the queue name.
+        :param tuple|list binding_keys: One or more routing keys, e.g.
+            ``["user.registered", "user.imported"]``. The binding keys may
+            include wildcards. Use ``user.*`` to subscribe to all events in the
+            user domain. Use ``#`` to call ``handler`` for all domain events
+            across all domains.
+        :param bool dead_letter: Whether to store events in a dead-letter queue
+            if the handler raises an exception while processing the event.
+        :param int max_retries: The handler may raise ``domain_events.Retry``
+            to indicate the event processing should be retried later. This
+            parameter controls how often an event is rescheduled before it is
+            dead-lettered or discarded.
+        """
         retry_exchange = name + '-retry'
         delay_exchange = name + '-delay'
         dead_letter_exchange = name + '-dlx'
