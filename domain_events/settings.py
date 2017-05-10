@@ -1,3 +1,8 @@
+# Sentinel object indicating the default broker should be used.
+# Allows passing `None` to deactivate broker connections in develop and test
+# environments.
+DEFAULT = object()
+
 # Default settings for local installation of RabbitMQ
 DEFAULT_BROKER = 'amqp://guest:guest@localhost:5672/%2F'
 

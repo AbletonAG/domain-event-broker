@@ -18,6 +18,10 @@ You can also set ``DOMAIN_EVENT_PUBLISHER_BROKER`` or
 ``DOMAIN_EVENT_SUBSCRIBER_BROKER`` for using different connection settings when
 publishing or consuming domain events.
 
+Setting ``DOMAIN_EVENT_BROKER`` to ``None`` will deactivate communication with
+RabbitMQ -- essentially disabling domain event routing. This can be useful in
+development and test environments where RabbitMQ is not available.
+
 Database transactions
 ---------------------
 
@@ -31,6 +35,14 @@ We recommend using ``publish_on_commit`` instead of using
 
 .. autofunction:: domain_events.django.publish_on_commit
 
+Testing
+-------
+
+If you want to test a component in isolation that is publishing domain events,
+we recommend mocking ``publish_domain_event`` or ``publish_on_commit``. For
+testing subscribers, you can create ``DomainEvent`` objects manually and
+directly call the handler function.
+
 Replaying dead-lettered domain events
 -------------------------------------
 
@@ -43,4 +55,4 @@ reschedule processing of dead-lettered events::
 The name is the one given to ``Subscriber.register``. The name is also used as
 the queue name. If an event is dead lettered into
 ``user-registeration-confirmation-dl``, you'd call ``replay_domain_event
-user-registration-confirmation``
+user-registration-confirmation``.

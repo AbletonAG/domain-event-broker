@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 
 
 def publish_domain_event(routing_key, data, domain_object_id=None,
-                         connection_settings=None):
+                         connection_settings=settings.DEFAULT):
     """
     Send a domain event to the message broker. The broker will take care of
     dispatching the event to registered subscribers.
@@ -25,8 +25,8 @@ def publish_domain_event(routing_key, data, domain_object_id=None,
     :param str domain_object_id: Domain identifier of the event. This field
         is optional. If used, it might make search in an event store easier.
     :param str connection_settings: Specify the broker with an AMQP URL. If not
-        given, the default broker will be used.
-
+        given, the default broker will be used. If set to ``None``, the domain
+        event is not published to a broker.
     :return: The domain event that was published.
     :rtype: :py:class:`domain_events.DomainEvent`
     """
@@ -96,11 +96,27 @@ def receive_callback(handler, delay_exchange, max_retries, channel, method, prop
         channel.basic_ack(delivery_tag=method.delivery_tag)
 
 
+def requires_broker(method):
+    """
+    If connection_settings are set to ``None`` on the transport object, don't
+    perform the action and log the call instead. This is used for environments
+    where no broker is available, e.g. development and testing.
+    """
+    def wrapper(transport, *args, **kwargs):
+        if transport.connection_settings is None:
+            log.debug("No broker configured: {}.{}() is deactivated.".format(
+                transport.__class__.__name__,
+                method.__name__))
+        else:
+            return method(transport, *args, **kwargs)
+    return wrapper
+
+
 class Transport(object):
 
     BROKER = settings.BROKER
 
-    def __init__(self, connection_settings=None,
+    def __init__(self, connection_settings=settings.DEFAULT,
                  exchange="domain-events", exchange_type="topic"):
         self.exchange = exchange
         self.exchange_type = exchange_type
@@ -108,12 +124,13 @@ class Transport(object):
         self.pending = []
         self.connection = None
         self.messages = []
-        if connection_settings is None:
+        if connection_settings is settings.DEFAULT:
             connection_settings = self.BROKER
         self.connection_settings = connection_settings
         self.channel = None
         self.connect()
 
+    @requires_broker
     def connect(self):
         """
         For now we use a synchronous connection - caller is blocked until a
@@ -131,6 +148,7 @@ class Transport(object):
                                       auto_delete=False,
                                       )
 
+    @requires_broker
     def disconnect(self):
         """
         Disconnect from queue. The API is a little weird. First we close the
@@ -149,6 +167,7 @@ class Publisher(Transport):
 
     BROKER = settings.PUBLISHER_BROKER
 
+    @requires_broker
     def publish(self, message, routing_key=None):
         """
         Send as persistent message.
@@ -176,12 +195,14 @@ class Subscriber(Transport):
 
     BROKER = settings.SUBSCRIBER_BROKER
 
+    @requires_broker
     def bind_routing_keys(self, exchange, queue_name, binding_keys):
         for binding_key in binding_keys:
             self.channel.queue_bind(exchange=exchange,
                                     routing_key=binding_key,
                                     queue=queue_name)
 
+    @requires_broker
     def register(self, handler, name, binding_keys=(), dead_letter=False,
                  durable=True, exclusive=False, auto_delete=False,
                  max_retries=0):
@@ -244,10 +265,12 @@ class Subscriber(Transport):
         self.channel.basic_qos(prefetch_count=1)
         self.channel.basic_consume(callback, queue=name)
 
+    @requires_broker
     def stop_consuming(self):
         self.channel.stop_consuming()
         self.disconnect()
 
+    @requires_broker
     def start_consuming(self, timeout=None):
         """
         Enter IO consumer loop after calling `register`. If timeout is given,

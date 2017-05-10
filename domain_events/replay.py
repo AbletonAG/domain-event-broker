@@ -11,7 +11,8 @@ def retry_event(**kwargs):
     return RETRY
 
 
-def replay_event(queue_name, message_callback=retry_event, connection_settings=None):
+def replay_event(queue_name, message_callback=retry_event,
+                 connection_settings=settings.DEFAULT):
     """
     Move one domain event from a dead-letter queue back into the processing queue.
 
@@ -23,10 +24,12 @@ def replay_event(queue_name, message_callback=retry_event, connection_settings=N
     :return: The number of messages left in the dead letter queue.
     :rtype: int
     """
+    if connection_settings is None:
+        return 0
+    elif connection_settings is settings.DEFAULT:
+        connection_settings = settings.SUBSCRIBER_BROKER
     retry_exchange = queue_name + '-retry'
     dead_letter_queue = queue_name + '-dl'
-    if connection_settings is None:
-        connection_settings = settings.SUBSCRIBER_BROKER
     transport = Transport(connection_settings)
     transport.connect()
     frame, header, body = transport.channel.basic_get(dead_letter_queue)
@@ -47,7 +50,8 @@ def replay_event(queue_name, message_callback=retry_event, connection_settings=N
     return frame.message_count
 
 
-def replay_all(queue_name, message_callback=retry_event, connection_settings=None):
+def replay_all(queue_name, message_callback=retry_event,
+               connection_settings=settings.DEFAULT):
     """
     Replay all messages currently in the dead-letter queue.
     Return number of messages dead-lettered since starting the replay.

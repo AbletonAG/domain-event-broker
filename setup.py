@@ -3,7 +3,7 @@ import versioneer
 from setuptools import setup, find_packages
 
 setup(
-    name='domain_events',
+    name='domain-events',
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     description='Send and receive domain events via RabbitMQ',
