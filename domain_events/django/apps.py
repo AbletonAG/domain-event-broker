@@ -10,8 +10,5 @@ class DomainEventsConfig(AppConfig):
     verbose_name = 'Domain Events'
 
     def ready(self):
-        settings.configure(
-            getattr(djsettings, 'DOMAIN_EVENT_BROKER', None),
-            getattr(djsettings, 'DOMAIN_EVENT_PUBLISHER_BROKER', None),
-            getattr(djsettings, 'DOMAIN_EVENT_SUBSCRIBER_BROKER', None),
-            )
+        if hasattr(djsettings, 'DOMAIN_EVENT_BROKER'):
+            settings.BROKER = djsettings.DOMAIN_EVENT_BROKER

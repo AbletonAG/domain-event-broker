@@ -3,18 +3,6 @@
 # environments.
 DEFAULT = object()
 
-# Default settings for local installation of RabbitMQ
-DEFAULT_BROKER = 'amqp://guest:guest@localhost:5672/%2F'
-
-# It's possible to connect to different brokers when publishing or consuming
-# domain events.
-BROKER = DEFAULT_BROKER
-PUBLISHER_BROKER = BROKER
-SUBSCRIBER_BROKER = BROKER
-
-
-def configure(default_broker, publisher_broker=None, subscriber_broker=None):
-    global BROKER, PUBLISHER_BROKER, SUBSCRIBER_BROKER
-    BROKER = default_broker if default_broker else BROKER
-    PUBLISHER_BROKER = publisher_broker if publisher_broker else BROKER
-    SUBSCRIBER_BROKER = subscriber_broker if subscriber_broker else BROKER
+# The connection settings used for connecting to RabbitMQ broker.
+# Default settings are for a local installation of RabbitMQ.
+BROKER = 'amqp://guest:guest@localhost:5672/%2F'

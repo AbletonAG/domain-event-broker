@@ -27,7 +27,7 @@ def replay_event(queue_name, message_callback=retry_event,
     if connection_settings is None:
         return 0
     elif connection_settings is settings.DEFAULT:
-        connection_settings = settings.SUBSCRIBER_BROKER
+        connection_settings = settings.BROKER
     retry_exchange = queue_name + '-retry'
     dead_letter_queue = queue_name + '-dl'
     transport = Transport(connection_settings)

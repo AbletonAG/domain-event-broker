@@ -114,8 +114,6 @@ def requires_broker(method):
 
 class Transport(object):
 
-    BROKER = settings.BROKER
-
     def __init__(self, connection_settings=settings.DEFAULT,
                  exchange="domain-events", exchange_type="topic"):
         self.exchange = exchange
@@ -125,7 +123,7 @@ class Transport(object):
         self.connection = None
         self.messages = []
         if connection_settings is settings.DEFAULT:
-            connection_settings = self.BROKER
+            connection_settings = settings.BROKER
         self.connection_settings = connection_settings
         self.channel = None
         self.connect()
@@ -165,8 +163,6 @@ class Transport(object):
 
 class Publisher(Transport):
 
-    BROKER = settings.PUBLISHER_BROKER
-
     @requires_broker
     def publish(self, message, routing_key=None):
         """
@@ -192,8 +188,6 @@ class Subscriber(Transport):
         multiple handlers are registered, only one event is processed at a
         time.
     """
-
-    BROKER = settings.SUBSCRIBER_BROKER
 
     @requires_broker
     def bind_routing_keys(self, exchange, queue_name, binding_keys):

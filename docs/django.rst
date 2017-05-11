@@ -14,10 +14,6 @@ This library can be configured via your Django settings. Add
 
     DOMAIN_EVENT_BROKER = 'amqp://user:password@rabbitmq-host/domain-events'
 
-You can also set ``DOMAIN_EVENT_PUBLISHER_BROKER`` or
-``DOMAIN_EVENT_SUBSCRIBER_BROKER`` for using different connection settings when
-publishing or consuming domain events.
-
 Setting ``DOMAIN_EVENT_BROKER`` to ``None`` will deactivate communication with
 RabbitMQ -- essentially disabling domain event routing. This can be useful in
 development and test environments where RabbitMQ is not available.

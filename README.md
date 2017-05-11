@@ -31,10 +31,6 @@ This library can be configured via your Django settings. Add
 
     DOMAIN_EVENT_BROKER = 'amqp://user:password@rabbitmq-host/domain-events'
 
-You can also set `DOMAIN_EVENT_PUBLISHER_BROKER` or
-`DOMAIN_EVENT_SUBSCRIBER_BROKER` for using different connection settings when
-publishing or consuming domain events.
-
 ## Sending events
 
 Events can be sent by calling `publish_domain_event`:
