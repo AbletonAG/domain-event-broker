@@ -2,6 +2,7 @@ Django
 coverage
 flake8
 mock
+pika >= 0.10
 pytest >= 3.0.0
 pytest-django
 sphinx
