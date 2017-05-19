@@ -10,7 +10,7 @@ env:
     - DJANGO="Django>=1.11,<1.12"
 install:
     - pip install -r requirements.txt -e .
-    - pip install flake8 sphinx
+    - pip install flake8 sphinx sphinx_rtd_theme
     - pip install -U pytest
     - pip install $DJANGO pytest-django
 script:
