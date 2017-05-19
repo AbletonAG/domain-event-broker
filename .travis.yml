@@ -10,9 +10,8 @@ env:
     - DJANGO="Django>=1.11,<1.12"
 install:
     - pip install -r requirements.txt -e .
-    - pip install flake8 sphinx sphinx_rtd_theme
-    - pip install -U pytest
-    - pip install $DJANGO pytest-django
+    - pip install $DJANGO
+    - pip install -r build_requirements.txt
 script:
     - py.test
     - flake8 domain_events --max-line-length=120 --exclude=__init__.py

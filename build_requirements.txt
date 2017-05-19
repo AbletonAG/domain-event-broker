@@ -1,0 +1,8 @@
+Django
+coverage
+flake8
+mock
+pytest >= 3.0.0
+pytest-django
+sphinx
+sphinx_rtd_theme
