@@ -13,6 +13,7 @@ log = logging.getLogger(__name__)
 
 
 def publish_domain_event(routing_key, data, domain_object_id=None,
+                         uuid_string=None, timestamp=None,
                          connection_settings=settings.DEFAULT):
     """
     Send a domain event to the message broker. The broker will take care of
@@ -24,6 +25,10 @@ def publish_domain_event(routing_key, data, domain_object_id=None,
     :param dict data: The actual event data. *Must* be json serializable.
     :param str domain_object_id: Domain identifier of the event. This field
         is optional. If used, it might make search in an event store easier.
+    :param str uuid_string: This UUID identifier of the event. If left
+        ``None``, a new one will be created.
+    :param float timestamp: Unix timestamp. If timestamp is None, a new
+        (UTC) timestamp will be created.
     :param str connection_settings: Specify the broker with an AMQP URL. If not
         given, the default broker will be used. If set to ``None``, the domain
         event is not published to a broker.
@@ -31,7 +36,8 @@ def publish_domain_event(routing_key, data, domain_object_id=None,
     :rtype: :py:class:`domain_events.DomainEvent`
     """
     event = DomainEvent(routing_key=routing_key, data=data,
-                        domain_object_id=domain_object_id)
+                        domain_object_id=domain_object_id, uuid_string=uuid_string,
+                        timestamp=timestamp)
     data = json.dumps(event.event_data)
     publisher = Publisher(connection_settings)
     publisher.publish(data, event.routing_key)
