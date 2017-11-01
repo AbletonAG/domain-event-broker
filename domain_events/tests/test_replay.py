@@ -1,4 +1,4 @@
-from domain_events import replay_event, DISCARD, LEAVE
+from domain_events import replay_event, Subscriber, DISCARD, LEAVE
 from .helpers import get_message_from_queue, get_queue_size
 
 
@@ -29,3 +29,14 @@ def test_leave(dead_letter_message):
     assert get_queue_size('test-replay') == 0
     header, event = get_message_from_queue('test-replay-dl')
     assert event.data == dead_letter_message
+
+
+def nop(event):
+    pass
+
+
+def test_empty_queue():
+    name = 'test-empty-queue'
+    subscriber = Subscriber()
+    subscriber.register(nop, name, ['test.empty'], dead_letter=True)
+    assert replay_event('test-empty-queue') == 0

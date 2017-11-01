@@ -92,7 +92,7 @@ def receive_callback(handler, delay_exchange, max_retries, channel, method, prop
             # Reject puts the message into the dead-letter queue if there is one
             log.warning("Exceeded max retries ({}) for event {}".format(max_retries, event))
             channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
-    except:
+    except:  # noqa: E722
         # Note: If we want immediate requeueing, add a `RequeueError` that
         # a consumer can raise to trigger requeuing. Dead-letter queues are
         # a better choice in most cases.
@@ -147,7 +147,7 @@ class Transport(object):
 
         # set up the Exchange (if it does not exist)
         self.channel.exchange_declare(exchange=self.exchange,
-                                      type=self.exchange_type,
+                                      exchange_type=self.exchange_type,
                                       durable=True,
                                       auto_delete=False,
                                       )
@@ -230,7 +230,7 @@ class Subscriber(Transport):
 
         arguments = {}
         if dead_letter:
-            self.channel.exchange_declare(exchange=dead_letter_exchange, type=self.exchange_type)
+            self.channel.exchange_declare(exchange=dead_letter_exchange, exchange_type=self.exchange_type)
             result = self.channel.queue_declare(queue=name + '-dl', durable=True)
             queue_name = result.method.queue
             self.bind_routing_keys(dead_letter_exchange, queue_name, binding_keys)
@@ -250,8 +250,8 @@ class Subscriber(Transport):
         # anyway so that messages can be replayed manually in the consumer
         # context.
         # Declare the exchange where messages expired in the wait queue are routed
-        self.channel.exchange_declare(exchange=retry_exchange, type=self.exchange_type)
-        self.channel.exchange_declare(exchange=delay_exchange, type=self.exchange_type)
+        self.channel.exchange_declare(exchange=retry_exchange, exchange_type=self.exchange_type)
+        self.channel.exchange_declare(exchange=delay_exchange, exchange_type=self.exchange_type)
         retry_arguments = {'x-dead-letter-exchange': retry_exchange}
         result = self.channel.queue_declare(queue=name + '-wait',
                                             durable=durable,
@@ -282,6 +282,6 @@ class Subscriber(Transport):
             self.channel.start_consuming()
         except KeyboardInterrupt:
             self.stop_consuming()
-        except:
+        except:  # noqa: E722
             self.stop_consuming()
             raise

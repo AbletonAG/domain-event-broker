@@ -79,3 +79,6 @@ def test_dead_letter():
         subscriber.start_consuming(timeout=1.0)
     header, event = get_message_from_queue('test-dead-letter-dl')
     assert event.data == data
+    transport = Subscriber()
+    transport.channel.queue_delete(queue='test-dead-letter')
+    transport.channel.queue_delete(queue='test-dead-letter-dl')

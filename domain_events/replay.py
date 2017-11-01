@@ -33,6 +33,8 @@ def replay_event(queue_name, message_callback=retry_event,
     transport = Transport(connection_settings)
     transport.connect()
     frame, header, body = transport.channel.basic_get(dead_letter_queue)
+    if frame is None:
+        return 0
     action = message_callback(frame=frame, header=header, body=body)
     if action == RETRY:
         transport.channel.basic_publish(exchange=retry_exchange,
