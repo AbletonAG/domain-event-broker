@@ -47,22 +47,57 @@ def publish_domain_event(routing_key, data, domain_object_id=None,
 
 class Retry(Exception):
     """
-    Raise this exception in an event handler to schedule a delayed retry.
+    Raise this exception in an event handler to schedule a delayed retry. The
+    delay is specified in seconds.
 
     .. note::
 
         Internally a delay exchange with a per-message TTL is used and all
-        delayed events for a handler are placed in one queue. Only the event at
-        the head of the queue can be processed - if events with a short delay
-        queue up behind an event with a long delay, those events all have to
-        wait until the event at the head is processed.
+        delayed events for a handler that share the same delay are placed in
+        one queue. The RabbitMQ TTL has a Millisecond resolution.
     """
     def __init__(self, delay=10.0):
         super(Retry, self).__init__()
         self.delay = delay
 
 
-def receive_callback(handler, delay_exchange, max_retries, channel, method, properties, body):
+def _retry_message(delay, name, retry_exchange, channel, method, properties, body):
+    delay = int(delay * 1000)
+    # Create queue that should be automatically deleted shortly after
+    # the last message expires. The queue is re-declared for each retry
+    # which resets the queue expiry.
+    delay_name = '{}-delay-{}'.format(name, delay)
+    result = channel.queue_declare(
+        queue=delay_name,
+        durable=True,
+        arguments={
+            'x-dead-letter-exchange': retry_exchange,
+            'x-message-ttl': delay,
+            'x-expires': delay + 10000,
+            },
+        )
+    queue_name = result.method.queue
+    # Bind the wait queue to the delay exchange before publishing
+    channel.exchange_declare(
+        exchange=delay_name,
+        durable=True,
+        auto_delete=True,  # Delete exchange when queue is deleted
+        exchange_type='topic',
+        )
+    channel.queue_bind(
+        exchange=delay_name,
+        routing_key='#',
+        queue=queue_name,
+        )
+    channel.basic_publish(exchange=delay_name,
+                          routing_key=method.routing_key,
+                          body=body,
+                          properties=properties,
+                          )
+
+
+def receive_callback(handler, name, retry_exchange, max_retries,
+                     channel, method, properties, body):
     event = DomainEvent.from_json(body)
     if properties.headers and 'x-death' in properties.headers:
         # Older RabbitMQ versions (< 3.5) keep adding x-death entries, new
@@ -82,12 +117,7 @@ def receive_callback(handler, delay_exchange, max_retries, channel, method, prop
             log.info("Retry ({event.retries}) consuming event {event} in {delay:.1f}s".format(
                 event=event, delay=error.delay))
             channel.basic_ack(delivery_tag=method.delivery_tag)
-            properties.expiration = str(int(error.delay * 1000))
-            channel.basic_publish(exchange=delay_exchange,
-                                  routing_key=method.routing_key,
-                                  body=body,
-                                  properties=properties,
-                                  )
+            _retry_message(error.delay, name, retry_exchange, channel, method, properties, body)
         else:
             # Reject puts the message into the dead-letter queue if there is one
             log.warning("Exceeded max retries ({}) for event {}".format(max_retries, event))
@@ -211,7 +241,7 @@ class Subscriber(Transport):
 
         :param function handler: This function will be called when an event
             happens. It receives a ``DomainEvent`` as the only parameter.
-        :param str name: Name of the handler. The name is used a the queue name.
+        :param str name: Name of the handler. The name is used as the queue name.
         :param tuple|list binding_keys: One or more routing keys, e.g.
             ``["user.registered", "user.imported"]``. The binding keys may
             include wildcards. Use ``user.*`` to subscribe to all events in the
@@ -225,7 +255,6 @@ class Subscriber(Transport):
             dead-lettered or discarded.
         """
         retry_exchange = name + '-retry'
-        delay_exchange = name + '-delay'
         dead_letter_exchange = name + '-dlx'
 
         arguments = {}
@@ -251,17 +280,10 @@ class Subscriber(Transport):
         # context.
         # Declare the exchange where messages expired in the wait queue are routed
         self.channel.exchange_declare(exchange=retry_exchange, exchange_type=self.exchange_type)
-        self.channel.exchange_declare(exchange=delay_exchange, exchange_type=self.exchange_type)
-        retry_arguments = {'x-dead-letter-exchange': retry_exchange}
-        result = self.channel.queue_declare(queue=name + '-wait',
-                                            durable=durable,
-                                            arguments=retry_arguments)
-        queue_name = result.method.queue
-        self.bind_routing_keys(delay_exchange, queue_name, binding_keys)
         # Bind the consumer queue to the retry exchange
         self.bind_routing_keys(retry_exchange, name, binding_keys)
 
-        callback = partial(receive_callback, handler, delay_exchange, max_retries)
+        callback = partial(receive_callback, handler, name, retry_exchange, max_retries)
         self.channel.basic_qos(prefetch_count=1)
         self.channel.basic_consume(callback, queue=name)
 
