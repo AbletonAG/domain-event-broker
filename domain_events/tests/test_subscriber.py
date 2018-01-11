@@ -34,6 +34,24 @@ def test_retry():
     assert get_queue_size(name) == 0
 
 
+def test_retry_delays():
+    # Events with shorter retry delays should be processed before the ones with
+    # longer delays.
+    def raise_retry(event):
+        raise_retry.received.append(event.data['delay'])
+        raise Retry(event.data['delay'])
+    raise_retry.received = []
+
+    name = 'test-retry-delay'
+    subscriber = Subscriber()
+    subscriber.register(raise_retry, name, ['test.retry-delay'], max_retries=1)
+    publish_domain_event('test.retry-delay', {'delay': 0.5})
+    publish_domain_event('test.retry-delay', {'delay': 0.1})
+    subscriber.start_consuming(timeout=1.0)
+    assert raise_retry.received == [0.5, 0.1, 0.1, 0.5]
+    assert get_queue_size(name) == 0
+
+
 def test_auto_delete():
     name = 'test-auto-delete'
     subscriber = Subscriber()
