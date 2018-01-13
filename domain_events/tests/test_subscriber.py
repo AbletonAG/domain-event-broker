@@ -45,10 +45,10 @@ def test_retry_delays():
     name = 'test-retry-delay'
     subscriber = Subscriber()
     subscriber.register(raise_retry, name, ['test.retry-delay'], max_retries=1)
-    publish_domain_event('test.retry-delay', {'delay': 0.5})
+    publish_domain_event('test.retry-delay', {'delay': 0.3})
     publish_domain_event('test.retry-delay', {'delay': 0.1})
     subscriber.start_consuming(timeout=1.0)
-    assert raise_retry.received == [0.5, 0.1, 0.1, 0.5]
+    assert raise_retry.received == [0.3, 0.1, 0.1, 0.3]
     assert get_queue_size(name) == 0
 
 
