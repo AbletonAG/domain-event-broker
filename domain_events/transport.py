@@ -47,15 +47,14 @@ def publish_domain_event(routing_key, data, domain_object_id=None,
 
 class Retry(Exception):
     """
-    Raise this exception in an event handler to schedule a delayed retry.
+    Raise this exception in an event handler to schedule a delayed retry. The
+    delay is specified in seconds.
 
     .. note::
 
         Internally a delay exchange with a per-message TTL is used and all
-        delayed events for a handler are placed in one queue. Only the event at
-        the head of the queue can be processed - if events with a short delay
-        queue up behind an event with a long delay, those events all have to
-        wait until the event at the head is processed.
+        delayed events for a handler that share the same delay are placed in
+        one queue. The RabbitMQ TTL has a Millisecond resolution.
     """
     def __init__(self, delay=10.0):
         super(Retry, self).__init__()
