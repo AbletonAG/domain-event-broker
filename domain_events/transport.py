@@ -100,7 +100,7 @@ def receive_callback(handler, name, retry_exchange, max_retries,
                      channel, method, properties, body):
     try:
         event = DomainEvent.from_json(body)
-    except:
+    except Exception:
         # We cannot parse the message; requeuing would not help.
         channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
         log.exception("Failed to load message: %s", body)
