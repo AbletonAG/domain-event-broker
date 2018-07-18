@@ -98,38 +98,44 @@ def _retry_message(delay, name, retry_exchange, channel, method, properties, bod
 
 def receive_callback(handler, name, retry_exchange, max_retries,
                      channel, method, properties, body):
-    event = DomainEvent.from_json(body)
-    if properties.headers and 'x-death' in properties.headers:
-        # Older RabbitMQ versions (< 3.5) keep adding x-death entries, new
-        # versions only keep the most recent entry and increment 'count', see:
-        # https://github.com/rabbitmq/rabbitmq-server/issues/78
-        expiry_info = properties.headers['x-death'][0]
-        if 'count' in expiry_info:
-            event.retries = expiry_info['count']
-        else:
-            event.retries = len(properties.headers['x-death'])
-    log.debug("Received {}:{}".format(method.routing_key, event))
     try:
-        handler(event)
-    except Retry as error:
-        if event.retries < max_retries:
-            # Publish manually to the delay exchange with a per-message TTL
-            log.info("Retry ({event.retries}) consuming event {event} in {delay:.1f}s".format(
-                event=event, delay=error.delay))
-            channel.basic_ack(delivery_tag=method.delivery_tag)
-            _retry_message(error.delay, name, retry_exchange, channel, method, properties, body)
-        else:
-            # Reject puts the message into the dead-letter queue if there is one
-            log.warning("Exceeded max retries ({}) for event {}".format(max_retries, event))
-            channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
-    except:  # noqa: E722
-        # Note: If we want immediate requeueing, add a `RequeueError` that
-        # a consumer can raise to trigger requeuing. Dead-letter queues are
-        # a better choice in most cases.
+        event = DomainEvent.from_json(body)
+    except Exception:
+        # We cannot parse the message; requeuing would not help.
         channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
-        raise
+        log.exception("Failed to load message: %s", body)
     else:
-        channel.basic_ack(delivery_tag=method.delivery_tag)
+        if properties.headers and 'x-death' in properties.headers:
+            # Older RabbitMQ versions (< 3.5) keep adding x-death entries, new
+            # versions only keep the most recent entry and increment 'count', see:
+            # https://github.com/rabbitmq/rabbitmq-server/issues/78
+            expiry_info = properties.headers['x-death'][0]
+            if 'count' in expiry_info:
+                event.retries = expiry_info['count']
+            else:
+                event.retries = len(properties.headers['x-death'])
+        log.debug("Received {}:{}".format(method.routing_key, event))
+        try:
+            handler(event)
+        except Retry as error:
+            if event.retries < max_retries:
+                # Publish manually to the delay exchange with a per-message TTL
+                log.info("Retry ({event.retries}) consuming event {event} in {delay:.1f}s".format(
+                    event=event, delay=error.delay))
+                channel.basic_ack(delivery_tag=method.delivery_tag)
+                _retry_message(error.delay, name, retry_exchange, channel, method, properties, body)
+            else:
+                # Reject puts the message into the dead-letter queue if there is one
+                log.warning("Exceeded max retries ({}) for event {}".format(max_retries, event))
+                channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
+        except:  # noqa: E722
+            # Note: If we want immediate requeueing, add a `RequeueError` that
+            # a consumer can raise to trigger requeuing. Dead-letter queues are
+            # a better choice in most cases.
+            channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
+            raise
+        else:
+            channel.basic_ack(delivery_tag=method.delivery_tag)
 
 
 def requires_broker(method):

@@ -1,9 +1,11 @@
-from domain_events import Subscriber, Retry, publish_domain_event
+from domain_events import Publisher, Subscriber, Retry, publish_domain_event
 from .helpers import (
     check_queue_exists, get_message_from_queue, get_queue_size,
     )
 import pytest
 import uuid
+
+from .. import settings
 
 
 def nop(event):
@@ -100,3 +102,13 @@ def test_dead_letter():
     transport = Subscriber()
     transport.channel.queue_delete(queue='test-dead-letter')
     transport.channel.queue_delete(queue='test-dead-letter-dl')
+
+
+def test_invalid_json():
+    name = 'test-invalid-json'
+    subscriber = Subscriber()
+    subscriber.register(nop, name, ['#'])
+    publisher = Publisher(settings.DEFAULT)
+    publisher.publish('iamnotvalidjson[]', 'foo')
+    publisher.disconnect()
+    subscriber.start_consuming(timeout=1.0)
