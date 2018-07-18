@@ -103,7 +103,7 @@ def receive_callback(handler, name, retry_exchange, max_retries,
     except Exception:
         # We cannot parse the message; requeuing would not help.
         channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
-        log.exception("Failed to load message: %s", body)
+        log.exception("Failed to load message: %s <- \"%s\"", method.routing_key, body)
     else:
         if properties.headers and 'x-death' in properties.headers:
             # Older RabbitMQ versions (< 3.5) keep adding x-death entries, new
