@@ -126,7 +126,9 @@ def receive_callback(handler, name, retry_exchange, max_retries,
                 _retry_message(error.delay, name, retry_exchange, channel, method, properties, body)
             else:
                 # Reject puts the message into the dead-letter queue if there is one
-                log.warning("Exceeded max retries ({}) for event {}".format(max_retries, event))
+                log.error("Exceeded max retries ({}) for {} event".format(max_retries, event.routing_key),
+                          exc_info=True,
+                          extra=event.event_data)
                 channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
         except:  # noqa: E722
             # Note: If we want immediate requeueing, add a `RequeueError` that
