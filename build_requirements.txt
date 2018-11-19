@@ -3,7 +3,7 @@ coverage
 flake8
 mock
 pika >= 0.10
-pytest >= 3.0.0
+pytest >= 3.6.0
 pytest-django
 sphinx
 sphinx_rtd_theme
