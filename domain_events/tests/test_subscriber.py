@@ -1,3 +1,4 @@
+from time import sleep
 from domain_events import Publisher, Subscriber, Retry, publish_domain_event
 from .helpers import (
     check_queue_exists, get_message_from_queue, get_queue_size,
@@ -112,3 +113,21 @@ def test_invalid_json():
     publisher.publish('iamnotvalidjson[]', 'foo')
     publisher.disconnect()
     subscriber.start_consuming(timeout=1.0)
+
+
+def test_long_running_consumer():
+    # Test a job that takes longer than the heartbeat of the connection.
+    # Make sure the consumer finishes processing and acknowledges the event.
+    name = 'test-long-job'
+
+    def slow_nop(event):
+        sleep(3.0)
+        slow_nop.finished += 1
+
+    slow_nop.finished = 0
+    subscriber = Subscriber(connection_settings=settings.BROKER+'?heartbeat=1')
+    subscriber.register(slow_nop, name, ['test.long_job'])
+    publish_domain_event('test.long_job', {})
+    subscriber.start_consuming(timeout=5.0)
+    assert get_queue_size(name) == 0
+    assert slow_nop.finished == 1
