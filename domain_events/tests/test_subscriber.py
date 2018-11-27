@@ -3,7 +3,6 @@ from domain_events import Publisher, Subscriber, Retry, publish_domain_event
 from .helpers import (
     check_queue_exists, get_message_from_queue, get_queue_size,
     )
-import pytest
 import uuid
 
 from .. import settings
@@ -96,8 +95,7 @@ def test_dead_letter():
     subscriber.register(raise_error, name, ['test.dl'], dead_letter=True)
     data = dict(message=str(uuid.uuid4())[:4])
     publish_domain_event('test.dl', data)
-    with pytest.raises(ConsumerError):
-        subscriber.start_consuming(timeout=1.0)
+    subscriber.start_consuming(timeout=1.0)
     header, event = get_message_from_queue('test-dead-letter-dl')
     assert event.data == data
     transport = Subscriber()

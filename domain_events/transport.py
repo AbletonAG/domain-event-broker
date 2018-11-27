@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 import logging
 import json
@@ -96,7 +97,7 @@ def _retry_message(delay, name, retry_exchange, channel, method, properties, bod
                           )
 
 
-def receive_callback(handler, name, retry_exchange, max_retries,
+def receive_callback(transport, handler, name, retry_exchange, max_retries,
                      channel, method, properties, body):
     try:
         event = DomainEvent.from_json(body)
@@ -115,29 +116,45 @@ def receive_callback(handler, name, retry_exchange, max_retries,
             else:
                 event.retries = len(properties.headers['x-death'])
         log.debug("Received {}:{}".format(method.routing_key, event))
-        try:
-            handler(event)
-        except Retry as error:
-            if event.retries < max_retries:
-                # Publish manually to the delay exchange with a per-message TTL
-                log.info("Retry ({event.retries}) consuming event {event} in {delay:.1f}s".format(
-                    event=event, delay=error.delay))
-                channel.basic_ack(delivery_tag=method.delivery_tag)
-                _retry_message(error.delay, name, retry_exchange, channel, method, properties, body)
-            else:
-                # Reject puts the message into the dead-letter queue if there is one
-                log.error("Exceeded max retries ({}) for {} event".format(max_retries, event.routing_key),
-                          exc_info=True,
-                          extra=event.event_data)
-                channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
-        except:  # noqa: E722
-            # Note: If we want immediate requeueing, add a `RequeueError` that
-            # a consumer can raise to trigger requeuing. Dead-letter queues are
-            # a better choice in most cases.
-            channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
-            raise
-        else:
+
+        # The channel and connection objects are not threadsafe. Only call any
+        # of those function from the main thread.
+
+        def ack():
             channel.basic_ack(delivery_tag=method.delivery_tag)
+
+        def retry(delay):
+            channel.basic_ack(delivery_tag=method.delivery_tag)
+            _retry_message(delay, name, retry_exchange, channel, method, properties, body)
+
+        def reject():
+            channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
+
+        def worker_thread():
+            try:
+                handler(event)
+            except Retry as error:
+                if event.retries < max_retries:
+                    # Publish manually to the delay exchange with a per-message TTL
+                    log.info("Retry ({event.retries}) consuming event {event} in {delay:.1f}s".format(
+                        event=event, delay=error.delay))
+                    channel.connection.add_callback_threadsafe(partial(retry, error.delay))
+                else:
+                    # Reject puts the message into the dead-letter queue if there is one
+                    log.error("Exceeded max retries ({}) for {} event".format(max_retries, event.routing_key),
+                              exc_info=True,
+                              extra=event.event_data)
+                    channel.connection.add_callback_threadsafe(reject)
+            except:  # noqa: E722
+                # Note: If we want immediate requeueing, add a `RequeueError` that
+                # a consumer can raise to trigger requeuing. Dead-letter queues are
+                # a better choice in most cases.
+                channel.connection.add_callback_threadsafe(reject)
+                raise
+            else:
+                channel.connection.add_callback_threadsafe(ack)
+
+        transport.consumer_pool.submit(worker_thread)
 
 
 def requires_broker(method):
@@ -233,6 +250,10 @@ class Subscriber(Transport):
         time.
     """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.consumer_pool = ThreadPoolExecutor(max_workers=1)
+
     @requires_broker
     def bind_routing_keys(self, exchange, queue_name, binding_keys):
         for binding_key in binding_keys:
@@ -291,7 +312,7 @@ class Subscriber(Transport):
         # Bind the consumer queue to the retry exchange
         self.bind_routing_keys(retry_exchange, name, binding_keys)
 
-        callback = partial(receive_callback, handler, name, retry_exchange, max_retries)
+        callback = partial(receive_callback, self, handler, name, retry_exchange, max_retries)
         self.channel.basic_qos(prefetch_count=1)
         self.channel.basic_consume(callback, queue=name)
 

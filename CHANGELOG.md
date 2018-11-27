@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 
+- Consumer errors don't stop the application anymore
+
+### Fixed
+
+- Heartbeats are sent even for long-running event handlers
+
 ## [1.0.3]
 
 ### Added

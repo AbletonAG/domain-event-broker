@@ -18,8 +18,7 @@ def dead_letter_message():
     subscriber.register(raise_error, name, ['test.replay'], dead_letter=True)
     data = dict(message=str(uuid.uuid4())[:4])
     publish_domain_event('test.replay', data)
-    with pytest.raises(ConsumerError):
-        subscriber.start_consuming(timeout=1.0)
+    subscriber.start_consuming(timeout=1.0)
     yield data
     transport = Subscriber()
     transport.channel.queue_delete(queue='test-replay')
