@@ -150,7 +150,7 @@ def receive_callback(transport, handler, name, retry_exchange, max_retries,
                 # a consumer can raise to trigger requeuing. Dead-letter queues are
                 # a better choice in most cases.
                 channel.connection.add_callback_threadsafe(reject)
-                raise
+                log.exception("Consumer error")
             else:
                 channel.connection.add_callback_threadsafe(ack)
 

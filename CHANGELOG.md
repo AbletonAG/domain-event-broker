@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
+### Removed
+
+- Python 2.7 support
+
 ### Changed
 
 - Consumer errors don't stop the application anymore
