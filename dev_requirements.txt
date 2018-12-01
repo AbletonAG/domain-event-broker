@@ -7,5 +7,5 @@ pytest
 wheel
 
 # Requirements for the Django integration
-Django >= 1.10
+Django >= 1.11
 pytest-django

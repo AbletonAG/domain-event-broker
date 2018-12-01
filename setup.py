@@ -12,7 +12,7 @@ setup(
     url='https://github.com/AbletonAG/domain-events',
     license='MIT',
     packages=find_packages(),
-    install_requires=["pika >= 0.10.0"],
-    tests_require=["pytest >= 3.0.0", "mock"],
+    install_requires=["pika >= 0.12.0"],
+    tests_require=["pytest >= 3.6.0", "mock"],
     zip_safe=False,
 )
