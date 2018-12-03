@@ -1,5 +1,5 @@
 from django.db import transaction
-from domain_events import publish_domain_event
+from domain_event_broker import publish_domain_event
 
 
 def publish_on_commit(*args, **kwargs):

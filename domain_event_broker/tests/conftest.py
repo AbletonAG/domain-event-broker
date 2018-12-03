@@ -1,4 +1,4 @@
-from domain_events import publish_domain_event, Subscriber
+from domain_event_broker import publish_domain_event, Subscriber
 import pytest
 import uuid
 

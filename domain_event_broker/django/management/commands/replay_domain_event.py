@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from domain_events import replay
+from domain_event_broker import replay
 
 
 class Command(BaseCommand):

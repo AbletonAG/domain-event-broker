@@ -20,9 +20,9 @@ down, or a dead-letter queue in case there is an error in the subscriber.
 Publish domain events
 ---------------------
 
-Events can be sent by calling :py:func:`~domain_events.publish_domain_event`::
+Events can be sent by calling :py:func:`~domain_event_broker.publish_domain_event`::
 
-    from domain_events import publish_domain_event
+    from domain_event_broker import publish_domain_event
     publish_domain_event('user.registered', {'user_id': user.id})
 
 Domain events are sent immediately. When emitting domain events from within a
@@ -40,7 +40,7 @@ queue.
 
 This script will receive all events that are sent in the user domain::
 
-    from domain_events import Subscriber
+    from domain_event_broker import Subscriber
 
     def handle_user_event(event):
         print event

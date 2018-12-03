@@ -1,10 +1,10 @@
 import json
 from mock import patch
 
-from domain_events import DomainEvent, publish_domain_event
+from domain_event_broker import DomainEvent, publish_domain_event
 
 
-@patch('domain_events.transport.Publisher.publish')
+@patch('domain_event_broker.transport.Publisher.publish')
 class TestEvent(object):
 
     def test_fire_event(self, mock):

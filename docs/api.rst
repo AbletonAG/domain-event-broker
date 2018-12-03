@@ -4,31 +4,31 @@ API Documentation
 Publish
 -------
 
-.. autofunction:: domain_events.publish_domain_event
+.. autofunction:: domain_event_broker.publish_domain_event
 
-.. autoclass:: domain_events.Publisher
+.. autoclass:: domain_event_broker.Publisher
     :special-members:
     :members:
 
 Subscribe
 ---------
 
-.. autoclass:: domain_events.Subscriber
+.. autoclass:: domain_event_broker.Subscriber
     :special-members:
     :members:
 
-.. autoclass:: domain_events.Retry
+.. autoclass:: domain_event_broker.Retry
 
 Replay
 ------
 
-.. autofunction:: domain_events.replay_event
+.. autofunction:: domain_event_broker.replay_event
 
-.. autofunction:: domain_events.replay_all
+.. autofunction:: domain_event_broker.replay_all
 
 Domain event
 ------------
 
-.. autoclass:: domain_events.DomainEvent
+.. autoclass:: domain_event_broker.DomainEvent
     :special-members: __init__
     :members:

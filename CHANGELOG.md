@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- Rename package to domain_event_broker
+
 ## [1.1]
 
 ### Removed
@@ -15,6 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 
+- Library and module name has been renamed from `domain_events` to `domain_event_broker`
 - Consumer errors don't stop the application anymore
 
 ### Fixed

@@ -5,11 +5,11 @@ Configuration
 -------------
 
 This library can be configured via your Django settings. Add
-*domain_events.django* to your ``INSTALLED_APPS`` and set the
+*domain_event_broker.django* to your ``INSTALLED_APPS`` and set the
 ``DOMAIN_EVENT_BROKER`` in your settings:
 
     INSTALLED_APPS = (
-        'domain_events.django',
+        'domain_event_broker.django',
         )
 
     DOMAIN_EVENT_BROKER = 'amqp://user:password@rabbitmq-host/domain-events'
@@ -29,7 +29,7 @@ transaction is rolled back after an error.
 We recommend using ``publish_on_commit`` instead of using
 ``publish_domain_event`` when you're using Django.
 
-.. autofunction:: domain_events.django.publish_on_commit
+.. autofunction:: domain_event_broker.django.publish_on_commit
 
 Testing
 -------
