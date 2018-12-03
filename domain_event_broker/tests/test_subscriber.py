@@ -1,5 +1,5 @@
 from time import sleep
-from domain_events import Publisher, Subscriber, Retry, publish_domain_event
+from domain_event_broker import Publisher, Subscriber, Retry, publish_domain_event
 from .helpers import (
     check_queue_exists, get_message_from_queue, get_queue_size,
     )

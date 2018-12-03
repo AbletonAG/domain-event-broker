@@ -2,7 +2,7 @@
 
 import sys
 
-from domain_events import Subscriber
+from domain_event_broker import Subscriber
 
 
 def handler(event):

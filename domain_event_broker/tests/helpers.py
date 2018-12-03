@@ -1,5 +1,5 @@
 import pika
-from domain_events import DomainEvent
+from domain_event_broker import DomainEvent
 
 
 def get_queue_size(name, **kwargs):

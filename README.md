@@ -14,7 +14,7 @@ RabbitMQ is used. This can be changed by passing an [amqp
 URL](http://pika.readthedocs.org/en/latest/examples/using_urlparameters.html)
 to `publish_domain_event` or when instantiating `Publisher` or `Subscriber`:
 
-    from domain_events import Subscriber
+    from domain_event_broker import Subscriber
     subscriber = Subscriber('amqp://user:password@rabbitmq-host/domain-events')
 
 ## Integrations
@@ -22,11 +22,11 @@ to `publish_domain_event` or when instantiating `Publisher` or `Subscriber`:
 ### Django
 
 This library can be configured via your Django settings. Add
-*domain_events.django* to your `INSTALLED_APPS` and set the
+*domain_event_broker.django* to your `INSTALLED_APPS` and set the
 `DOMAIN_EVENT_BROKER` in your settings:
 
     INSTALLED_APPS = (
-        'domain_events.django',
+        'domain_event_broker.django',
         )
 
     DOMAIN_EVENT_BROKER = 'amqp://user:password@rabbitmq-host/domain-events'
@@ -35,7 +35,7 @@ This library can be configured via your Django settings. Add
 
 Events can be sent by calling `publish_domain_event`:
 
-    from domain_events import publish_domain_event
+    from domain_event_broker import publish_domain_event
     publish_domain_event('user.registered', {'user_id': user.id})
 
 Domain events are sent immediately. When emitting domain events from within a
@@ -52,7 +52,7 @@ queue.
 
 This script will receive all events that are sent in the user domain:
 
-    from domain_events import Subscriber
+    from domain_event_broker import Subscriber
 
     def handle_user_event(event):
         print event
@@ -66,7 +66,7 @@ This script will receive all events that are sent in the user domain:
 If there is a problem consuming a message - for example a web service is down -
 the subscriber can raise an error to retry handling the event after the given delay:
 
-    from domain_events import Subscriber
+    from domain_event_broker import Subscriber
 
     def sync_user_data(event):
         try:
@@ -102,8 +102,8 @@ Make sure you have RabbitMQ installed locally for testing.
 
 There's
 
-* Generic domain events: `domain_events.events`
-* The transport, via rabbitmq: `domain_events.transport`
+* Generic domain events: `domain_event_broker.events`
+* The transport, via rabbitmq: `domain_event_broker.transport`
 
 ### Testing
 

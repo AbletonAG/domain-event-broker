@@ -2,11 +2,11 @@
 
 import sys
 
-from domain_events import Subscriber
+from domain_event_broker import Subscriber
 
 
 def log_event(event):
-    print " [x] {}".format(event)
+    print(" [x] {}".format(event))
 
 
 if __name__ == '__main__':

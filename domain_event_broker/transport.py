@@ -34,7 +34,7 @@ def publish_domain_event(routing_key, data, domain_object_id=None,
         given, the default broker will be used. If set to ``None``, the domain
         event is not published to a broker.
     :return: The domain event that was published.
-    :rtype: :py:class:`domain_events.DomainEvent`
+    :rtype: :py:class:`domain_event_broker.DomainEvent`
     """
     event = DomainEvent(
         routing_key=routing_key,
@@ -305,7 +305,7 @@ class Subscriber(Transport):
             across all domains.
         :param bool dead_letter: Whether to store events in a dead-letter queue
             if the handler raises an exception while processing the event.
-        :param int max_retries: The handler may raise ``domain_events.Retry``
+        :param int max_retries: The handler may raise ``domain_event_broker.Retry``
             to indicate the event processing should be retried later. This
             parameter controls how often an event is rescheduled before it is
             dead-lettered or discarded.

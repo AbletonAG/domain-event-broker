@@ -3,13 +3,13 @@ import versioneer
 from setuptools import setup, find_packages
 
 setup(
-    name='rabbit-domain-events',
+    name='domain-event-broker',
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     description='Send and receive domain events via RabbitMQ',
     author='Ableton AG',
     author_email='webteam@ableton.com',
-    url='https://github.com/AbletonAG/domain-events',
+    url='https://github.com/AbletonAG/domain-event-broker',
     license='MIT',
     packages=find_packages(),
     install_requires=["pika >= 0.12.0"],

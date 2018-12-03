@@ -1,4 +1,4 @@
-from domain_events import replay_event, Subscriber, DISCARD, LEAVE
+from domain_event_broker import replay_event, Subscriber, DISCARD, LEAVE
 from .helpers import get_message_from_queue, get_queue_size
 
 

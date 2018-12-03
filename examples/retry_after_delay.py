@@ -3,7 +3,7 @@
 import logging
 import sys
 
-from domain_events import Subscriber, Retry
+from domain_event_broker import Subscriber, Retry
 
 
 logging.basicConfig(level=logging.INFO)

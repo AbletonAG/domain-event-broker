@@ -1,10 +1,10 @@
 SECRET_KEY = 'test'
 INSTALLED_APPS = [
-    "domain_events.django",
+    "domain_event_broker.django",
 ]
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'domain_events',
+        'NAME': 'domain_event_broker',
     }
 }

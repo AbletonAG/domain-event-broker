@@ -1,4 +1,4 @@
-from domain_events import publish_domain_event, Subscriber
+from domain_event_broker import publish_domain_event, Subscriber
 from .helpers import check_queue_exists, get_queue_size
 import uuid
 

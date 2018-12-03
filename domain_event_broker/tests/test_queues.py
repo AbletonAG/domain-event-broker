@@ -1,4 +1,4 @@
-from domain_events import transport
+from domain_event_broker import transport
 
 
 def test_publish():
