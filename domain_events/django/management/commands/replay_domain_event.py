@@ -2,11 +2,6 @@ from django.core.management.base import BaseCommand
 
 from domain_events import replay
 
-try:
-    input = raw_input
-except NameError:
-    pass
-
 
 class Command(BaseCommand):
 
