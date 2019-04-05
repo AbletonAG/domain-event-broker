@@ -357,7 +357,7 @@ class Subscriber(Transport):
             retry_exchange,
             max_retries)
         self.channel.basic_qos(prefetch_count=1)
-        self.channel.basic_consume(callback, queue=name)
+        self.channel.basic_consume(queue=name, on_message_callback=callback)
 
     @requires_broker
     def stop_consuming(self):
@@ -371,7 +371,7 @@ class Subscriber(Transport):
         the consumer will be stopped after the specified number of seconds.
         """
         if timeout:
-            self.connection.add_timeout(timeout, self.stop_consuming)
+            self.connection.call_later(timeout, self.stop_consuming)
         try:
             self.channel.start_consuming()
         except KeyboardInterrupt:

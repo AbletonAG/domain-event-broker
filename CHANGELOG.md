@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 
-- Rename package to domain_event_broker
+- Rename package to `domain_event_broker`
+- Require pika version 1.0.0 or higher
 
 ## [1.1]
 

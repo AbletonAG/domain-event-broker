@@ -12,7 +12,7 @@ setup(
     url='https://github.com/AbletonAG/domain-event-broker',
     license='MIT',
     packages=find_packages(),
-    install_requires=["pika >= 0.12.0"],
+    install_requires=["pika >= 1.0.0"],
     tests_require=["pytest >= 3.6.0", "mock"],
     zip_safe=False,
 )
