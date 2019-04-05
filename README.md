@@ -1,4 +1,4 @@
-# Domain events
+# Domain event broker
 
 This library provides a shallow layer on top of [RabbitMQ topic
 exchanges](https://www.rabbitmq.com/tutorials/tutorial-five-python.html) for
@@ -80,15 +80,6 @@ the subscriber can raise an error to retry handling the event after the given de
 
 The delayed retries are bound to the consumer, not the event. If `max_retries`
 is exceeded, the event will be dropped or dead-lettered.
-
-#### Caveats
-
-The retry policy is implemented using a wait queue with per-message expiry.
-Expired messages will only be re-routed to the subscriber when the first message
-in the waiting queue expires. For the example above, if event A has been
-retried for the third time and another event B is retried for the first time,
-both events will only be redelivered after event A expires (25s) even though
-event A is supposed to expire after 1s.
 
 ## Development
 
