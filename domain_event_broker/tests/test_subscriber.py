@@ -1,7 +1,7 @@
 from time import sleep
 from domain_event_broker import Publisher, Subscriber, Retry, publish_domain_event
 from .helpers import (
-    check_queue_exists, get_message_from_queue, get_queue_size,
+    check_queue_exists, delete_queue, get_message_from_queue, get_queue_size,
     )
 import uuid
 
@@ -27,6 +27,7 @@ def test_retry():
     raise_retry.received = 0
 
     name = 'test-retry'
+    delete_queue(name)
     subscriber = Subscriber()
     subscriber.register(raise_retry, name, ['test.retry'], max_retries=3)
     data = dict(message=str(uuid.uuid4())[:4])
@@ -45,6 +46,7 @@ def test_retry_delays():
     raise_retry.received = []
 
     name = 'test-retry-delay'
+    delete_queue(name)
     subscriber = Subscriber()
     subscriber.register(raise_retry, name, ['test.retry-delay'], max_retries=1)
     publish_domain_event('test.retry-delay', {'delay': 0.3})
@@ -56,6 +58,7 @@ def test_retry_delays():
 
 def test_auto_delete():
     name = 'test-auto-delete'
+    delete_queue(name)
     subscriber = Subscriber()
     subscriber.register(nop, name, ['test.auto_delete'], auto_delete=True)
     publish_domain_event('test.auto_delete', {})
@@ -84,6 +87,7 @@ def test_multiple_listeneres():
 
 def test_consumer_timeout():
     name = 'test-consumer-timeout'
+    delete_queue(name)
     subscriber = Subscriber()
     subscriber.register(nop, name, ['#'])
     subscriber.start_consuming(timeout=1.0)
@@ -91,6 +95,7 @@ def test_consumer_timeout():
 
 def test_dead_letter():
     name = 'test-dead-letter'
+    delete_queue(name)
     subscriber = Subscriber()
     subscriber.register(raise_error, name, ['test.dl'], dead_letter=True)
     data = dict(message=str(uuid.uuid4())[:4])
@@ -105,6 +110,7 @@ def test_dead_letter():
 
 def test_invalid_json():
     name = 'test-invalid-json'
+    delete_queue(name)
     subscriber = Subscriber()
     subscriber.register(nop, name, ['#'])
     publisher = Publisher(settings.DEFAULT)
@@ -117,6 +123,7 @@ def test_long_running_consumer():
     # Test a job that takes longer than the heartbeat of the connection.
     # Make sure the consumer finishes processing and acknowledges the event.
     name = 'test-long-job'
+    delete_queue(name)
 
     def slow_nop(event):
         sleep(3.0)

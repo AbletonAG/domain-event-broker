@@ -34,3 +34,10 @@ def get_message_from_queue(name, **kwargs):
         return header, event
     else:
         return None, None
+
+
+def delete_queue(name):
+    connection = pika.BlockingConnection()
+    channel = connection.channel()
+    channel.queue_delete(queue=name)
+    channel.close()
