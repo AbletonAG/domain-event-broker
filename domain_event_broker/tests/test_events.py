@@ -1,5 +1,5 @@
 import json
-from mock import patch
+from unittest.mock import patch
 
 from domain_event_broker import DomainEvent, publish_domain_event
 

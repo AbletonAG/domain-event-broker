@@ -13,7 +13,7 @@ setup(
     license='MIT',
     packages=find_packages(),
     install_requires=["pika >= 1.0.0"],
-    tests_require=["pytest >= 3.6.0", "mock"],
+    tests_require=["pytest >= 3.6.0"],
     zip_safe=False,
     classifiers=[
         'Development Status :: 4 - Beta',

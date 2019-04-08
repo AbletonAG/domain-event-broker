@@ -1,5 +1,5 @@
-Domain Events
-=============
+Domain Event Broker
+===================
 
 .. toctree::
     :maxdepth: 2

@@ -1,5 +1,5 @@
 import pytest
-from mock import patch
+from unittest.mock import patch
 from django.db import transaction
 
 from domain_event_broker.django import publish_on_commit

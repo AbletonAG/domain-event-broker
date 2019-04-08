@@ -1,7 +1,6 @@
 coverage
 ipdb
 ipython
-mock
 py
 pytest
 wheel
