@@ -6,7 +6,7 @@ Configuration
 
 This library can be configured via your Django settings. Add
 *domain_event_broker.django* to your ``INSTALLED_APPS`` and set the
-``DOMAIN_EVENT_BROKER`` in your settings:
+``DOMAIN_EVENT_BROKER`` in your settings::
 
     INSTALLED_APPS = (
         'domain_event_broker.django',

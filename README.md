@@ -31,6 +31,9 @@ This library can be configured via your Django settings. Add
 
     DOMAIN_EVENT_BROKER = 'amqp://user:password@rabbitmq-host/domain-events'
 
+More information can be found in the
+[documentation](https://domain-event-broker.readthedocs.io/en/latest/django.html).
+
 ## Sending events
 
 Events can be sent by calling `publish_domain_event`:
@@ -54,11 +57,11 @@ This script will receive all events that are sent in the user domain:
 
     from domain_event_broker import Subscriber
 
-    def handle_user_event(event):
-        print event
+    def log_user_event(event):
+        print(event)
 
     subscriber = Subscriber()
-    subscriber.register(handle_user_event, 'printer', ['user.*'])
+    subscriber.register(log_user_event, 'printer', ['user.*'])
     subscriber.start_consuming()
 
 ### Retry policy

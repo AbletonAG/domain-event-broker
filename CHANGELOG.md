@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [2.0]
 
+### Added
+
+- Django 2.2 support
+- Python 3.7 support
+
 ### Changed
 
-- Rename package to `domain_event_broker`
+- Library and module name has been renamed from `domain_events` to `domain_event_broker`
 - Require pika version 1.0.0 or higher
 
 ## [1.1]
@@ -20,7 +25,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 
-- Library and module name has been renamed from `domain_events` to `domain_event_broker`
 - Consumer errors don't stop the application anymore
 
 ### Fixed
