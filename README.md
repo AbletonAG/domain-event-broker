@@ -88,17 +88,6 @@ is exceeded, the event will be dropped or dead-lettered.
 
 Make sure you have RabbitMQ installed locally for testing.
 
-* create virtualenv and activate it
-* run `pip install -r requirements.txt -r dev_requirements.txt -e .`
-* the only external dependency (so far) is `pika`
-
-### Architecture
-
-There's
-
-* Generic domain events: `domain_event_broker.events`
-* The transport, via rabbitmq: `domain_event_broker.transport`
-
-### Testing
-
-Testing is done with `py.test`.
+* Create virtualenv and activate it
+* Install dependencies with `pip install -r requirements.txt -r dev_requirements.txt -e .`
+* Run tests with `pytest`
