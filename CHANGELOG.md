@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Django 3.0 & 3.1 support
+- Python 3.8 & 3.9 support
+- Inline type information according to PEP 484 / 561
+
+### Changed
+
+### Removed
+
+- Django 1.11, 2.0 support
+- Python 3.5 support
+
 ## [2.0]
 
 ### Added
