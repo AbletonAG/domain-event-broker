@@ -113,7 +113,7 @@ def test_invalid_json():
     delete_queue(name)
     subscriber = Subscriber()
     subscriber.register(nop, name, ['#'])
-    publisher = Publisher(settings.DEFAULT)
+    publisher = Publisher(settings.BROKER)
     publisher.publish('iamnotvalidjson[]', 'foo')
     publisher.disconnect()
     subscriber.start_consuming(timeout=1.0)

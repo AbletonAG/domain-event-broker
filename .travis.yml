@@ -20,4 +20,5 @@ install:
 script:
     - py.test
     - flake8 domain_events --max-line-length=120 --exclude=__init__.py
+    - mypy domain_event_broker
     - sphinx-build -b html docs docs/_build/html

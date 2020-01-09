@@ -1,11 +1,12 @@
 from datetime import datetime
 import json
+from typing import Dict, Optional, Union
 from uuid import uuid4
 
 FACTOR = 10**6
 
 
-def to_timestamp(dt, epoch=datetime(1970, 1, 1)):
+def to_timestamp(dt: datetime, epoch: datetime = datetime(1970, 1, 1)) -> float:
     """http://stackoverflow.com/questions/8777753/converting-datetime-date-to-utc-timestamp-in-python"""
     td = dt - epoch
     return (td.microseconds + (td.seconds + td.days * 86400) * FACTOR) / FACTOR
@@ -14,13 +15,13 @@ def to_timestamp(dt, epoch=datetime(1970, 1, 1)):
 class DomainEvent(object):
 
     def __init__(self,
-                 routing_key=u"",
-                 data={},
-                 domain_object_id=None,
-                 uuid_string=None,  # only set if recreated from json repr
-                 timestamp=None,  # only set if recreated from json repr
-                 retries=0,
-                 **kwargs):
+                 routing_key: str = u"",
+                 data: Dict = {},
+                 domain_object_id: Optional[str] = None,
+                 uuid_string: Optional[str] = None,  # only set if recreated from json repr
+                 timestamp: Optional[float] = None,  # only set if recreated from json repr
+                 retries: int = 0,
+                 ) -> None:
         """
         Define a Domain Event.
 
@@ -52,7 +53,7 @@ class DomainEvent(object):
         self.retries = retries
 
     @classmethod
-    def from_json(cls, json_data):
+    def from_json(cls, json_data: Union[bytes, str]) -> 'DomainEvent':
         """
         Create a DomainEvent from ``json_data``. Note that you probably want to
         dispatch first based on domain and event type.
@@ -60,16 +61,16 @@ class DomainEvent(object):
         :param str json_data: Serialized domain event data.
         :rtype: DomainEvent
         """
-        try:
+        if isinstance(json_data, bytes):  # needed for Python 3.5
             json_data = json_data.decode('utf-8')
-        except AttributeError:
-            pass
         return cls(**json.loads(json_data))
 
-    def __repr__(self):
-        return u"DomainEvent('{0.routing_key}', '{0.data}', (domain_obj_id: {0.domain_object_id}, uuid: {0.uuid_string}))".format(self) # noqa
+    def __repr__(self) -> str:
+        return "DomainEvent('{0.routing_key}', '{0.data}', (domain_obj_id: {0.domain_object_id}, uuid: {0.uuid_string}))".format(self) # noqa
 
     __str__ = __repr__
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, DomainEvent):
+            return NotImplemented
         return self.event_data == other.event_data

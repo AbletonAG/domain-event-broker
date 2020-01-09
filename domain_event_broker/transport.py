@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import logging
 import json
 from pika import (
@@ -7,15 +8,20 @@ from pika import (
     BlockingConnection,
     URLParameters,
     )
+from pika import channel, frame, spec
 from .events import DomainEvent
 from . import settings
 
 log = logging.getLogger(__name__)
 
 
-def publish_domain_event(routing_key, data, domain_object_id=None,
-                         uuid_string=None, timestamp=None,
-                         connection_settings=settings.DEFAULT):
+def publish_domain_event(routing_key: str,
+                         data: Dict[str, Any],
+                         domain_object_id: str = None,
+                         uuid_string: Optional[str] = None,
+                         timestamp: Optional[float] = None,
+                         connection_settings: str = settings.BROKER,
+                         ) -> DomainEvent:
     """
     Send a domain event to the message broker. The broker will take care of
     dispatching the event to registered subscribers.
@@ -42,9 +48,9 @@ def publish_domain_event(routing_key, data, domain_object_id=None,
         domain_object_id=domain_object_id,
         uuid_string=uuid_string,
         timestamp=timestamp)
-    data = json.dumps(event.event_data)
+    json_data = json.dumps(event.event_data)
     publisher = Publisher(connection_settings)
-    publisher.publish(data, event.routing_key)
+    publisher.publish(json_data, event.routing_key)
     publisher.disconnect()
     return event
 
@@ -60,13 +66,19 @@ class Retry(Exception):
         delayed events for a handler that share the same delay are placed in
         one queue. The RabbitMQ TTL has a Millisecond resolution.
     """
-    def __init__(self, delay=10.0):
+    def __init__(self, delay: float = 10.0):
         super(Retry, self).__init__()
         self.delay = delay
 
 
-def _retry_message(name, retry_exchange, channel, method, properties, body,
-                   delay):
+def _retry_message(name: str,
+                   retry_exchange: str,
+                   channel: channel.Channel,
+                   method: frame.Method,
+                   properties: spec.BasicProperties,
+                   body: str,
+                   delay: float,
+                   ) -> None:
     delay = int(delay * 1000)
     # Create queue that should be automatically deleted shortly after
     # the last message expires. The queue is re-declared for each retry
@@ -99,8 +111,14 @@ def _retry_message(name, retry_exchange, channel, method, properties, body,
         properties=properties)
 
 
-def _call_event_handler(handler, event, connection, acknowledge, retry,
-                        reject, max_retries):
+def _call_event_handler(handler: Callable,
+                        event: DomainEvent,
+                        connection: BlockingConnection,
+                        acknowledge: Callable,
+                        retry: Callable,
+                        reject: Callable,
+                        max_retries: int,
+                        ) -> None:
     # The handler is executed in a separate worker thread. Handle any errors
     # and trigger retries, dead-lettering or acknowledgement via threadsafe
     # callback on the connection.
@@ -134,8 +152,16 @@ def _call_event_handler(handler, event, connection, acknowledge, retry,
         connection.add_callback_threadsafe(acknowledge)
 
 
-def receive_callback(transport, handler, name, retry_exchange, max_retries,
-                     channel, method, properties, body):
+def receive_callback(transport: 'Subscriber',
+                     handler: Callable,
+                     name: str,
+                     retry_exchange: str,
+                     max_retries: int,
+                     channel: channel.Channel,
+                     method: frame.Method,
+                     properties: spec.BasicProperties,
+                     body: str,
+                     ) -> None:
     try:
         event = DomainEvent.from_json(body)
     except Exception:
@@ -183,13 +209,13 @@ def receive_callback(transport, handler, name, retry_exchange, max_retries,
         transport.workers.submit(event_handler)
 
 
-def requires_broker(method):
+def requires_broker(method: Callable) -> Callable:
     """
     If connection_settings are set to ``None`` on the transport object, don't
     perform the action and log the call instead. This is used for environments
     where no broker is available, e.g. development and testing.
     """
-    def wrapper(transport, *args, **kwargs):
+    def wrapper(transport: 'Transport', *args: Any, **kwargs: Any) -> Any:
         if transport.connection_settings is None:
             log.debug("No broker configured: {}.{}() is deactivated.".format(
                 transport.__class__.__name__,
@@ -201,40 +227,42 @@ def requires_broker(method):
 
 class Transport(object):
 
-    def __init__(self, connection_settings=settings.DEFAULT,
-                 exchange="domain-events", exchange_type="topic"):
+    def __init__(self,
+                 connection_settings: str = settings.BROKER,
+                 exchange: str = "domain-events",
+                 exchange_type: str = "topic",
+                 ):
         self.exchange = exchange
         self.exchange_type = exchange_type
         self.context_depth = 0
-        self.pending = []
         self.connection = None
-        self.messages = []
-        if connection_settings is settings.DEFAULT:
-            connection_settings = settings.BROKER
         self.connection_settings = connection_settings
         self.channel = None
         self.connect()
 
     @requires_broker
-    def connect(self):
+    def connect(self) -> None:
         """
         For now we use a synchronous connection - caller is blocked until a
         message is added to the queue. We might switch to asynch connections
         should this incur noticable latencies.
         """
         params = URLParameters(self.connection_settings)
-        self.connection = BlockingConnection(params)
-        self.channel = self.connection.channel()
+        connection = BlockingConnection(params)
+        channel = connection.channel()
 
         # set up the Exchange (if it does not exist)
-        self.channel.exchange_declare(
+        channel.exchange_declare(
             exchange=self.exchange,
             exchange_type=self.exchange_type,
             durable=True,
             auto_delete=False)
 
+        self.connection = connection
+        self.channel = channel
+
     @requires_broker
-    def disconnect(self):
+    def disconnect(self) -> None:
         """
         Disconnect from queue. The API is a little weird. First we close the
         connection, then disconnect from the socket. The last step will remove
@@ -243,7 +271,8 @@ class Transport(object):
         Make sure you don't close the channel, otherwise the connection cannot
         be closed anymore.
         """
-        self.connection.close()
+        if self.connection is not None:
+            self.connection.close()
         self.channel = None
         self.connection = None
 
@@ -251,10 +280,13 @@ class Transport(object):
 class Publisher(Transport):
 
     @requires_broker
-    def publish(self, message, routing_key=None):
+    def publish(self, message: bytes, routing_key: Optional[str] = None) -> None:
         """
         Send as persistent message.
         """
+        if self.channel is None:
+            raise Exception('Not connected to broker.')
+
         self.channel.basic_publish(
             exchange=self.exchange,
             routing_key=routing_key,
@@ -276,12 +308,19 @@ class Subscriber(Transport):
         time.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.workers = ThreadPoolExecutor(max_workers=1)
 
     @requires_broker
-    def bind_routing_keys(self, exchange, queue_name, binding_keys):
+    def bind_routing_keys(self,
+                          exchange: str,
+                          queue_name: str,
+                          binding_keys: Union[List[str], Tuple[str]],
+                          ) -> None:
+        if self.channel is None:
+            raise Exception('Not connected to broker.')
+
         for binding_key in binding_keys:
             self.channel.queue_bind(
                 exchange=exchange,
@@ -289,9 +328,16 @@ class Subscriber(Transport):
                 queue=queue_name)
 
     @requires_broker
-    def register(self, handler, name, binding_keys=(), dead_letter=False,
-                 durable=True, exclusive=False, auto_delete=False,
-                 max_retries=0):
+    def register(self,
+                 handler: Callable,
+                 name: str,
+                 binding_keys: Union[List[str], Tuple[str]],
+                 dead_letter: bool = False,
+                 durable: bool = True,
+                 exclusive: bool = False,
+                 auto_delete: bool = False,
+                 max_retries: int = 0,
+                 ) -> None:
         """
         Register a handler for one or more types of domain events.
 
@@ -310,6 +356,9 @@ class Subscriber(Transport):
             parameter controls how often an event is rescheduled before it is
             dead-lettered or discarded.
         """
+        if self.channel is None:
+            raise Exception('Not connected to broker.')
+
         retry_exchange = name + '-retry'
         dead_letter_exchange = name + '-dlx'
 
@@ -360,16 +409,19 @@ class Subscriber(Transport):
         self.channel.basic_consume(queue=name, on_message_callback=callback)
 
     @requires_broker
-    def stop_consuming(self):
-        self.channel.stop_consuming()
+    def stop_consuming(self) -> None:
+        if self.channel is not None:
+            self.channel.stop_consuming()
         self.disconnect()
 
     @requires_broker
-    def start_consuming(self, timeout=None):
+    def start_consuming(self, timeout: Optional[float] = None) -> None:
         """
         Enter IO consumer loop after calling `register`. If timeout is given,
         the consumer will be stopped after the specified number of seconds.
         """
+        if self.connection is None or self.channel is None:
+            raise Exception('Not connected to broker.')
         if timeout:
             self.connection.call_later(timeout, self.stop_consuming)
         try:

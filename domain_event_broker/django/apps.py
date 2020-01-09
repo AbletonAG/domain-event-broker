@@ -9,6 +9,6 @@ class DomainEventsConfig(AppConfig):
     label = 'domain_event_broker_django'
     verbose_name = 'Domain Events'
 
-    def ready(self):
+    def ready(self) -> None:
         if hasattr(djsettings, 'DOMAIN_EVENT_BROKER'):
             settings.BROKER = djsettings.DOMAIN_EVENT_BROKER

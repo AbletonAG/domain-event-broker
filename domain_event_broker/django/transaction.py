@@ -1,8 +1,9 @@
+from typing import Any
 from django.db import transaction
 from domain_event_broker import publish_domain_event
 
 
-def publish_on_commit(*args, **kwargs):
+def publish_on_commit(*args: Any, **kwargs: Any) -> None:
     """
     Send domain event after transaction has been committed to the database. If
     there is no transaction, it'll be sent right away. If atomic blocks are
@@ -12,7 +13,7 @@ def publish_on_commit(*args, **kwargs):
 
     https://docs.djangoproject.com/en/dev/topics/db/transactions/#performing-actions-after-commit
     """
-    def publish():
+    def publish() -> None:
         publish_domain_event(*args, **kwargs)
 
     transaction.on_commit(publish)

@@ -1,6 +1,7 @@
 Django
 coverage
 flake8
+mypy
 pika >= 1.0.0
 pytest >= 3.6.0
 pytest-django
