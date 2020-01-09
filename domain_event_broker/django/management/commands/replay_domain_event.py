@@ -1,5 +1,7 @@
+from typing import Any
 from django.core.management.base import BaseCommand
 
+from argparse import ArgumentParser
 from domain_event_broker import replay
 
 
@@ -7,7 +9,7 @@ class Command(BaseCommand):
 
     help = "Move dead-lettered event back into given subscriber queue"
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: ArgumentParser) -> None:
         parser.add_argument('queue', nargs='+', type=str)
         parser.add_argument(
             '--all',
@@ -24,8 +26,8 @@ class Command(BaseCommand):
             help='Ask for desired action for each event.',
         )
 
-    def interactive_filter(self, body=None, **kwargs):
-        self.stdout.write("Please specify action for: '{}'".format(body))
+    def interactive_filter(self, body: bytes, **kwargs: Any) -> str:
+        self.stdout.write("Please specify action for: '{}'".format(body.decode('utf-8')))
         action = input("(R)eplay, (D)iscard or (L)eave? ")[0].upper()
         return {
             'R': replay.RETRY,
@@ -33,7 +35,7 @@ class Command(BaseCommand):
             'L': replay.LEAVE,
             }[action]
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
         callback = replay.retry_event
         if options['interactive']:
             callback = self.interactive_filter
