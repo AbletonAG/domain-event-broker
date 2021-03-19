@@ -14,6 +14,7 @@ def test_replay(dead_letter_message):
 
 def test_interactive_replay(dead_letter_message, monkeypatch):
     monkeypatch.setattr('sys.stdin', StringIO('Replay'))
+    monkeypatch.setattr('select.select', lambda x, y, z, *args: (x, y, z))
     output = StringIO()
     call_command('replay_domain_event', 'test-replay', '--interactive',
                  stdout=output)
@@ -32,6 +33,7 @@ def test_interactive_replay(dead_letter_message, monkeypatch):
 
 def test_interactive_replay_leave(dead_letter_message, monkeypatch):
     monkeypatch.setattr('sys.stdin', StringIO('Leave'))
+    monkeypatch.setattr('select.select', lambda x, y, z, *args: (x, y, z))
     call_command('replay_domain_event', 'test-replay', '--interactive')
     sleep(.6)
     assert get_queue_size('test-replay-dl') == 1
@@ -40,7 +42,26 @@ def test_interactive_replay_leave(dead_letter_message, monkeypatch):
 
 def test_interactive_replay_discard(dead_letter_message, monkeypatch):
     monkeypatch.setattr('sys.stdin', StringIO('Discard'))
+    monkeypatch.setattr('select.select', lambda x, y, z, *args: (x, y, z))
     call_command('replay_domain_event', 'test-replay', '--interactive')
     sleep(.6)
     assert get_queue_size('test-replay-dl') == 0
+    assert get_queue_size('test-replay') == 0
+
+
+def test_interactive_replay_invalid(dead_letter_message, monkeypatch):
+    monkeypatch.setattr('sys.stdin', StringIO('Obliterate'))
+    monkeypatch.setattr('select.select', lambda x, y, z, *args: (x, y, z))
+    call_command('replay_domain_event', 'test-replay', '--interactive')
+    sleep(.6)
+    assert get_queue_size('test-replay-dl') == 1
+    assert get_queue_size('test-replay') == 0
+
+
+def test_interactive_replay_timeout(dead_letter_message, monkeypatch):
+    monkeypatch.setattr('sys.stdin', StringIO(''))
+    monkeypatch.setattr('select.select', lambda x, y, z, *args: ([], [], []))
+    call_command('replay_domain_event', 'test-replay', '--interactive')
+    sleep(.6)
+    assert get_queue_size('test-replay-dl') == 1
     assert get_queue_size('test-replay') == 0
