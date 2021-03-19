@@ -1,3 +1,5 @@
+import json
+
 from typing import Any
 from django.core.management.base import BaseCommand
 
@@ -27,7 +29,9 @@ class Command(BaseCommand):
         )
 
     def interactive_filter(self, body: bytes, **kwargs: Any) -> str:
-        self.stdout.write("Please specify action for: '{}'".format(body.decode('utf-8')))
+        payload = json.loads(body)
+        self.stdout.write("Please specify action for:")
+        self.stdout.write(json.dumps(payload, indent=4, sort_keys=True))
         action = input("(R)eplay, (D)iscard or (L)eave? ")[0].upper()
         return {
             'R': replay.RETRY,
