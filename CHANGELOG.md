@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.0]
 
 ### Added
 
@@ -13,12 +13,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Python 3.8 & 3.9 support
 - Inline type information according to PEP 484 / 561
 
-### Changed
-
 ### Removed
 
 - Django 1.11, 2.0 support
 - Python 3.5 support
+
+### Changed
+
+- Print formatted JSON event data during interactive replays
+
+### Fixed
+
+- Use timeout during interactive replay to avoid errors when losing connections
 
 ## [2.0]
 
