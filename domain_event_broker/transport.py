@@ -20,7 +20,7 @@ def publish_domain_event(routing_key: str,
                          domain_object_id: str = None,
                          uuid_string: Optional[str] = None,
                          timestamp: Optional[float] = None,
-                         connection_settings: str = settings.BROKER,
+                         connection_settings: Optional[str] = '',
                          ) -> DomainEvent:
     """
     Send a domain event to the message broker. The broker will take care of
@@ -49,6 +49,8 @@ def publish_domain_event(routing_key: str,
         uuid_string=uuid_string,
         timestamp=timestamp)
     json_data = json.dumps(event.event_data)
+    if connection_settings == '':
+        connection_settings = settings.BROKER
     publisher = Publisher(connection_settings)
     publisher.publish(json_data, event.routing_key)
     publisher.disconnect()
@@ -228,10 +230,12 @@ def requires_broker(method: Callable) -> Callable:
 class Transport(object):
 
     def __init__(self,
-                 connection_settings: str = settings.BROKER,
+                 connection_settings: Optional[str] = '',
                  exchange: str = "domain-events",
                  exchange_type: str = "topic",
                  ):
+        if connection_settings == '':
+            connection_settings = settings.BROKER
         self.exchange = exchange
         self.exchange_type = exchange_type
         self.context_depth = 0
