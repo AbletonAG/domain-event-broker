@@ -14,7 +14,7 @@ def retry_event(body: bytes, **kwargs: Any) -> str:
 
 def replay_event(queue_name: str,
                  message_callback: Callable = retry_event,
-                 connection_settings: Optional[str] = settings.BROKER,
+                 connection_settings: Optional[str] = '',
                  ) -> int:
     """
     Move one domain event from a dead-letter queue back into the processing queue.
@@ -29,6 +29,8 @@ def replay_event(queue_name: str,
     """
     if connection_settings is None:
         return 0
+    elif connection_settings == '':
+        connection_settings = settings.BROKER
     retry_exchange = queue_name + '-retry'
     dead_letter_queue = queue_name + '-dl'
     transport = Transport(connection_settings)
@@ -56,7 +58,7 @@ def replay_event(queue_name: str,
 
 def replay_all(queue_name: str,
                message_callback: Callable = retry_event,
-               connection_settings: Optional[str] = settings.BROKER,
+               connection_settings: Optional[str] = '',
                ) -> int:
     """
     Replay all messages currently in the dead-letter queue.
