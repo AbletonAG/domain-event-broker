@@ -39,7 +39,7 @@ class Command(BaseCommand):
         payload = json.loads(body)
         self.stdout.write("Please specify action for:")
         self.stdout.write(json.dumps(payload, indent=4, sort_keys=True))
-        self.stdout.write("(R)eplay, (D)iscard or (L)eave? ", ending="")
+        self.stdout.write("(R)eplay, (D)iscard or (L)eave?")
         # Wait for user input but time out before the RabbitMQ connection is
         # lost.
         action = input_timeout(30)
