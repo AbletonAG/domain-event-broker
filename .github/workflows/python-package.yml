@@ -5,14 +5,9 @@ name: CI
 
 on: [push, pull_request]
 
-defaults:
-  run:
-    working-directory: .
-
 jobs:
   build:
 
-    runs-on: ubuntu-latest
     services:
       rabbitmq:
         image: rabbitmq:3-management
@@ -21,8 +16,10 @@ jobs:
           - 15672:15672
     strategy:
       matrix:
+        os: [ubuntu-latest]
         python-version: [3.6, 3.7, 3.8, 3.9]
-
+        django-version: [2.2, 3.2]
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -33,16 +30,21 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        pip install django~=${{ matrix.django-version }}.0
         pip install -r build_requirements.txt
+        pip install -e .
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 domain_event_broker --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 domain_event_broker --count --exit-zero --max-complexity=10 --max-line-length=127 --exclude=__init__.py --statistics
+        flake8 domain_event_broker --count --exit-zero --max-complexity=10 --max-line-length=127 --exclude=__init__.py,_version.py --statistics
     - name: Test with pytest
       run: |
-        pytest
+        pytest -v domain_event_broker
     - name: Check types
       run: |
         mypy domain_event_broker
+    - name: Build documentation
+      run: |
+        sphinx-build -b html docs docs/_build/html
