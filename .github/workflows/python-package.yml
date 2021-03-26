@@ -3,11 +3,11 @@
 
 name: CI
 
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+on: [push, pull_request]
+
+defaults:
+  run:
+    working-directory: .
 
 jobs:
   build:
@@ -34,13 +34,15 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install -r build_requirements.txt
-        pip install .
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 domain_event_broker --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 domain_event_broker --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        flake8 domain_event_broker --count --exit-zero --max-complexity=10 --max-line-length=127 --exclude=__init__.py --statistics
     - name: Test with pytest
       run: |
         pytest
+    - name: Check types
+      run: |
+        mypy domain_event_broker
