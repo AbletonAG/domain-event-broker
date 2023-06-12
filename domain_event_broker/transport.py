@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 def publish_domain_event(routing_key: str,
                          data: Dict[str, Any],
-                         domain_object_id: str = None,
+                         domain_object_id: Optional[str] = None,
                          uuid_string: Optional[str] = None,
                          timestamp: Optional[float] = None,
                          connection_settings: Optional[str] = '',
