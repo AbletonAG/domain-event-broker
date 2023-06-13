@@ -42,23 +42,27 @@ class Command(BaseCommand):
         self.stdout.write("(R)eplay, (D)iscard or (L)eave?")
         # Wait for user input but time out before the RabbitMQ connection is
         # lost.
+        self.stdout.flush()
+        return_value = replay.LEAVE
+        message = "Message left in queue."
         action = input_timeout(30)
-        if action is None:
-            self.stdout.write("Timed out. Message left in queue.")
-            return replay.LEAVE
-        elif action == '':
-            self.stdout.write("Message left in queue.")
-            return replay.LEAVE
-        action = action[0].upper()
-        if action == 'R':
-            self.stdout.write("Message is returned to worker queue.")
-            return replay.RETRY
-        elif action == 'D':
-            self.stdout.write("Message has been discarded.")
-            return replay.DISCARD
+        # there had been user input
+        if action is not None:
+            # If the user input has been more that "Return", take the first char
+            # Defaults to (L)eave
+            action = action[0].upper() if action else ""
+            if action == 'R':
+                message = "Message is returned to worker queue."
+                return_value = replay.RETRY
+            elif action == 'D':
+                message = "Message has been discarded."
+                return_value = replay.DISCARD
         else:
-            self.stdout.write("Message left in queue.")
-            return replay.LEAVE
+            message = f"Timed out. {message}"
+
+        self.stdout.write(message)
+        self.stdout.flush()
+        return return_value
 
     def handle(self, *args: Any, **options: Any) -> None:
         callback = replay.retry_event
