@@ -89,5 +89,5 @@ is exceeded, the event will be dropped or dead-lettered.
 Make sure you have RabbitMQ installed locally for testing.
 
 * Create virtualenv and activate it
-* Install dependencies with `pip install -r requirements.txt -r dev_requirements.txt -e .`
+* Install dependencies with `pip install -e .[dev,test]`
 * Run tests with `pytest`

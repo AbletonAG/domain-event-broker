@@ -1,8 +1,8 @@
+
 from domain_event_broker import publish_domain_event, Subscriber
 from .helpers import delete_queue
 import pytest
 import uuid
-
 
 class ConsumerError(Exception):
     pass
@@ -25,3 +25,21 @@ def dead_letter_message():
     transport = Subscriber()
     transport.channel.queue_delete(queue='test-replay')
     transport.channel.queue_delete(queue='test-replay-dl')
+
+
+def pytest_configure():
+    from django.conf import settings
+    settings.configure(
+        SECRET_KEY='test',
+        INSTALLED_APPS = [
+            "domain_event_broker.django",
+        ],
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': 'domain_event_broker',
+            },
+        },
+    )
+    import django
+    django.setup()

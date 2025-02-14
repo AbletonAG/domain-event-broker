@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm>=8", "wheel", "sphinx", "sphinx-rtd-theme"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "domain-event-broker"
+description = "Send and receive domain events via RabbitMQ"
+readme = "README.md"
+authors = [
+    { name = "The Ableton Web Team", email = "webteam@ableton.com" }
+]
+dynamic = ["version"]
+dependencies = [
+    "pika>=1.2.0"
+]
+
+[project.optional-dependencies]
+test = [
+    "coverage==7.6.0",
+    "pytest==8.3.2",
+    "pytest-cov==5.0.0",
+    "flake8==7.1.0",
+    "flake8_builtins==2.5.0",
+    "django>=3,<4",
+    "pytest-django"
+]
+dev = [
+    "build",
+    "ipdb==0.13.13"
+]
+
+[tool.setuptools]
+packages = { find = {} }
+include-package-data = true
+zip-safe = false
+
+[tool.setuptools_scm]
