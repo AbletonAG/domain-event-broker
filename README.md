@@ -22,14 +22,59 @@ to `publish_domain_event` or when instantiating `Publisher` or `Subscriber`:
 ### Django
 
 This library can be configured via your Django settings. Add
-*domain_event_broker.django* to your `INSTALLED_APPS` and set the
+*domain_event_broker* to your `INSTALLED_APPS` and set the
 `DOMAIN_EVENT_BROKER` in your settings:
 
-    INSTALLED_APPS = (
-        'domain_event_broker.django',
-        )
+```python
+INSTALLED_APPS = (
+    'domain_event_broker',
+    )
 
-    DOMAIN_EVENT_BROKER = 'amqp://user:password@rabbitmq-host/domain-events'
+DOMAIN_EVENT_BROKER = 'amqp://user:password@rabbitmq-host/domain-events'
+```
+
+This library includes a Django management command to consume and process domain events:
+
+    django-admin consume_domain_events
+
+To register domain events to be processed, define `DOMAIN_EVENT_RECEIVERS` in the Django config,
+which lists Python modules to include per channel:
+
+```python
+DOMAIN_EVENT_RECEIVERS = {
+    "default": [
+        "app.core",
+        "app.events",
+    ],
+    "payments": [
+        "app.payments.events",
+    ],
+}
+```
+
+In each of the Python modules, define a `register` function that receives a `Subscriber`
+object as sole parameter:
+
+```python
+def register(subscriber: Subscriber):
+    subscriber.register(
+        handler=handle_payment_event,
+        name="on_payment_received",
+        binding_keys=['app.payment_received'],
+    )
+    subscriber.register(
+    ...
+```
+
+The command will consume and process domain events of a given channel:
+
+    django-admin consume_domain_events --channel=payments
+
+Or all defined channels::
+
+    django-admin consume_domain_events --all-channels
+
+If no channel is given, events from the ``default`` channel will be consumed and processed.
 
 More information can be found in the
 [documentation](https://domain-event-broker.readthedocs.io/en/latest/django.html).
@@ -38,8 +83,10 @@ More information can be found in the
 
 Events can be sent by calling `publish_domain_event`:
 
-    from domain_event_broker import publish_domain_event
-    publish_domain_event('user.registered', {'user_id': user.id})
+```python
+from domain_event_broker import publish_domain_event
+publish_domain_event('user.registered', {'user_id': user.id})
+```
 
 Domain events are sent immediately. When emitting domain events from within a
 database transaction, it's recommended to defer publishing until the transaction
@@ -55,31 +102,35 @@ queue.
 
 This script will receive all events that are sent in the user domain:
 
-    from domain_event_broker import Subscriber
+```python
+from domain_event_broker import Subscriber
 
-    def log_user_event(event):
-        print(event)
+def log_user_event(event):
+    print(event)
 
-    subscriber = Subscriber()
-    subscriber.register(log_user_event, 'printer', ['user.*'])
-    subscriber.start_consuming()
+subscriber = Subscriber()
+subscriber.register(log_user_event, 'printer', ['user.*'])
+subscriber.start_consuming()
+```
 
 ### Retry policy
 
 If there is a problem consuming a message - for example a web service is down -
 the subscriber can raise an error to retry handling the event after the given delay:
 
-    from domain_event_broker import Subscriber
+```python
+from domain_event_broker import Subscriber
 
-    def sync_user_data(event):
-        try:
-            publish_to_service(event)
-        except ServiceIsDown:
-            raise Retry(5.0 ** event.retries) # 1s, 5s, 25s
+def sync_user_data(event):
+    try:
+        publish_to_service(event)
+    except ServiceIsDown:
+        raise Retry(5.0 ** event.retries) # 1s, 5s, 25s
 
-    subscriber = Subscriber()
-    subscriber.register(sync_user_data, 'sync_data', ['user.*'], max_retries=3)
-    subscriber.start_consuming()
+subscriber = Subscriber()
+subscriber.register(sync_user_data, 'sync_data', ['user.*'], max_retries=3)
+subscriber.start_consuming()
+```
 
 The delayed retries are bound to the consumer, not the event. If `max_retries`
 is exceeded, the event will be dropped or dead-lettered.

@@ -29,7 +29,7 @@ transaction is rolled back after an error.
 We recommend using ``publish_on_commit`` instead of using
 ``publish_domain_event`` when you're using Django.
 
-.. autofunction:: domain_event_broker.django.publish_on_commit
+.. autofunction:: domain_event_broker.compat.publish_on_commit
 
 Testing
 -------
@@ -52,3 +52,46 @@ The name is the one given to ``Subscriber.register``. The name is also used as
 the queue name. If an event is dead lettered into
 ``user-registeration-confirmation-dl``, you'd call ``replay_domain_event
 user-registration-confirmation``.
+
+Management command to consume and process domain events
+-------------------------------------------------------
+This library includes a Django management command to consume and process domain events::
+
+    django-admin consume_domain_events
+
+To register domain events to be processed, define ``DOMAIN_EVENT_RECEIVERS`` in the Django config,
+which lists Python modules to include per channel::
+
+    DOMAIN_EVENT_RECEIVERS = {
+        "default": [
+            "app.core",
+            "app.events",
+        ],
+        "payments": [
+            "app.payments.events",
+        ],
+    }
+
+In each of the Python modules, define a ``register`` function that receives a ``Subscriber``
+object as sole parameter::
+
+    def register(subscriber: Subscriber):
+        subscriber.register(
+            handler=handle_payment_event,
+            name="on_payment_received",
+            binding_keys=['app.payment_received'],
+        )
+        subscriber.register(
+        ...
+
+See :py:meth:`~domain_event_broker.Subscriber.register` for additional settings for ``Subscriber.register``.
+
+The command will consume and process domain events of a given channel::
+
+    django-admin consume_domain_events --channel=payments
+
+Or all defined channels::
+
+    django-admin consume_domain_events --all-channels
+
+If no channel is given, events from the ``default`` channel will be consumed and processed.
