@@ -1,6 +1,8 @@
+from argparse import ArgumentParser
 import logging
 from importlib import import_module
 from itertools import chain
+from typing import Any, Callable, Iterable, TypeVar
 
 from django.core.management.base import BaseCommand
 from django.db import close_old_connections
@@ -12,6 +14,9 @@ from domain_event_broker import settings, Subscriber
 logger = logging.getLogger(__name__)
 
 
+HandlerReturn = TypeVar('HandlerReturn')
+
+
 class ResilientSubscriber(Subscriber):
     """
     Ensure that the event handler can connect to the database even if the
@@ -20,9 +25,9 @@ class ResilientSubscriber(Subscriber):
     requests.
     """
 
-    def register(self, handler, *args, **kwargs):
+    def register(self, handler: Callable[..., HandlerReturn], *args: Any, **kwargs: Any) -> None:
 
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> HandlerReturn:
             """
             Close dead database connections before calling the handler in the
             context of the worker thread.
@@ -35,7 +40,7 @@ class ResilientSubscriber(Subscriber):
 
 class Command(BaseCommand):
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: ArgumentParser) -> None:
         channel_choices = settings.DOMAIN_EVENT_RECEIVERS.keys()
         parser.add_argument(
             "--channel",
@@ -50,9 +55,11 @@ class Command(BaseCommand):
             help="When set, process all channels. By default, only one channel is processed.", # noqa
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
         translation.activate('en')
         subscriber = ResilientSubscriber()
+
+        module_names: Iterable[str]
         if options["all_channels"]:
             module_names = chain.from_iterable(settings.DOMAIN_EVENT_RECEIVERS.values())
         else:
