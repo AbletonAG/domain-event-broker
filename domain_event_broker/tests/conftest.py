@@ -32,7 +32,7 @@ def pytest_configure():
     settings.configure(
         SECRET_KEY='test',
         INSTALLED_APPS = [
-            "domain_event_broker.django",
+            "domain_event_broker",
         ],
         DATABASES = {
             'default': {
