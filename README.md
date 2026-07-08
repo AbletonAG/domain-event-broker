@@ -22,14 +22,54 @@ to `publish_domain_event` or when instantiating `Publisher` or `Subscriber`:
 ### Django
 
 This library can be configured via your Django settings. Add
-*domain_event_broker.django* to your `INSTALLED_APPS` and set the
+*domain_event_broker* to your `INSTALLED_APPS` and set the
 `DOMAIN_EVENT_BROKER` in your settings:
 
     INSTALLED_APPS = (
-        'domain_event_broker.django',
+        'domain_event_broker',
         )
 
     DOMAIN_EVENT_BROKER = 'amqp://user:password@rabbitmq-host/domain-events'
+
+This library includes a Django management command to consume and process domain events
+
+    django-admin consume_domain_events
+
+To register domain events to be processed, define `DOMAIN_EVENT_RECEIVERS` in the Django config,
+which lists Python modules to include per channel
+
+    DOMAIN_EVENT_RECEIVERS = {
+        "default": [
+            "app.core",
+            "app.events",
+        ],
+        "payments": [
+            "app.payments.events",
+        ],
+    }
+
+In each of the Python modules, define a `register` function that receives a `Subscriber`
+object as sole parameter::
+
+    def register(subscriber: Subscriber):
+        subscriber.register(
+            handler=handle_payment_event,
+            name="on_payment_received",
+            binding_keys=['app.payment_received'],
+        )
+        subscriber.register(
+        ...
+
+
+The command will consume and process domain events of a given channel::
+
+    django-admin consume_domain_events --channel=payments
+
+Or all defined channels::
+
+    django-admin consume_domain_events --all-channels
+
+If no channel is given, events from the ``default`` channel will be consumed and processed.
 
 More information can be found in the
 [documentation](https://domain-event-broker.readthedocs.io/en/latest/django.html).
