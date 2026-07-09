@@ -54,7 +54,7 @@ the queue name. If an event is dead lettered into
 user-registration-confirmation``.
 
 Management command to consume and process domain events
------------------------------------------------------
+-------------------------------------------------------
 This library includes a Django management command to consume and process domain events::
 
     django-admin consume_domain_events
@@ -84,7 +84,7 @@ object as sole parameter::
         subscriber.register(
         ...
 
-See :py:method:`~domain_event_broker.Subscriber.register` for additional settings for ``Subscriber.register``.
+See :py:meth:`~domain_event_broker.Subscriber.register` for additional settings for ``Subscriber.register``.
 
 The command will consume and process domain events of a given channel::
 
