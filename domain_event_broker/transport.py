@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
-from functools import partial
+from functools import partial, wraps
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import logging
 import json
@@ -217,6 +217,7 @@ def requires_broker(method: Callable) -> Callable:
     perform the action and log the call instead. This is used for environments
     where no broker is available, e.g. development and testing.
     """
+    @wraps(method)
     def wrapper(transport: 'Transport', *args: Any, **kwargs: Any) -> Any:
         if transport.connection_settings is None:
             log.debug("No broker configured: {}.{}() is deactivated.".format(
