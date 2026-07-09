@@ -25,11 +25,13 @@ This library can be configured via your Django settings. Add
 *domain_event_broker* to your `INSTALLED_APPS` and set the
 `DOMAIN_EVENT_BROKER` in your settings:
 
-    INSTALLED_APPS = (
-        'domain_event_broker',
-        )
+```python
+INSTALLED_APPS = (
+    'domain_event_broker',
+    )
 
-    DOMAIN_EVENT_BROKER = 'amqp://user:password@rabbitmq-host/domain-events'
+DOMAIN_EVENT_BROKER = 'amqp://user:password@rabbitmq-host/domain-events'
+```
 
 This library includes a Django management command to consume and process domain events
 
